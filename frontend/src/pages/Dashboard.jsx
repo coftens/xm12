@@ -7,12 +7,14 @@ import {
   Clock,
   Server as ServerIcon,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import api from '@/api'
 
 // Simple Circular Progress Component (Baota Style)
-const CircularProgress = ({ value, color = '#22c55e', size = 120, strokeWidth = 8, label, subLabel }) => {
+const CircularProgress = ({ value, color = '#3b82f6', size = 120, strokeWidth = 8, label, subLabel }) => {
   const radius = (size - strokeWidth) / 2
   const circumference = radius * 2 * Math.PI
   const offset = circumference - (value / 100) * circumference
@@ -44,10 +46,10 @@ const CircularProgress = ({ value, color = '#22c55e', size = 120, strokeWidth = 
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-2xl font-bold" style={{ color }}>{Math.round(value)}%</span>
-        {label && <span className="text-xs text-muted-foreground mt-1">{label}</span>}
+        <span className="text-xl font-bold" style={{ color }}>{Math.round(value)}%</span>
+        {label && <span className="text-xs text-muted-foreground mt-0.5">{label}</span>}
       </div>
-      {subLabel && <div className="absolute -bottom-6 text-xs text-muted-foreground whitespace-nowrap">{subLabel}</div>}
+      {subLabel && <div className="absolute -bottom-5 text-[10px] text-muted-foreground whitespace-nowrap">{subLabel}</div>}
     </div>
   )
 }
@@ -74,42 +76,40 @@ const initialUsage = {
   processor: '-'
 }
 
-export default function Dashboard() {
-  const { currentServer, serverMetrics, setServerMetrics } = useServerStore()
+// Format Bytes (Auto Scaling)
+const formatBytes = (bytes) => {
+  if (!Number.isFinite(bytes) || bytes < 0) return '0 B'
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+// Component for a Single Server Monitor Card
+const ServerMonitorCard = ({ server }) => {
+  const { setServerMetrics, serverMetrics } = useServerStore()
   const [netSpeed, setNetSpeed] = useState({ upload: 0, download: 0 })
   const [lastNetData, setLastNetData] = useState({ bytes_sent: 0, bytes_recv: 0, timestamp: 0 })
-  const wsRef = React.useRef(null)
+  const [isConnected, setIsConnected] = useState(false)
 
   // Use cached metrics or initial
-  const systemInfo = (currentServer && serverMetrics[currentServer.id])
-    ? serverMetrics[currentServer.id]
+  const systemInfo = (server && serverMetrics[server.id])
+    ? serverMetrics[server.id]
     : initialUsage
 
-  // Format Bytes (Auto Scaling)
-  const formatBytes = (bytes) => {
-    if (!Number.isFinite(bytes) || bytes < 0) return '0 B'
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-  }
-
-  // WebSocket Connection
   useEffect(() => {
-    if (!currentServer) return
+    if (!server) return
 
     const token = localStorage.getItem('token')
     if (!token) return
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    // Fix: Ensure we use window.location.host to include port if needed, handled by Nginx proxy
-    const wsUrl = `${protocol}//${window.location.host}/api/ws/monitor/${currentServer.id}?token=${token}`
+    const wsUrl = `${protocol}//${window.location.host}/api/ws/monitor/${server.id}?token=${token}`
 
     const ws = new WebSocket(wsUrl)
-    wsRef.current = ws
 
-    ws.onopen = () => console.log('WebSocket 监控连接已建立')
+    ws.onopen = () => setIsConnected(true)
 
     ws.onmessage = (event) => {
       try {
@@ -119,31 +119,16 @@ export default function Dashboard() {
           const data = message.data
           const now = Date.now()
 
-          // --- Data Conversion (Key Step!) ---
-          // Backend units:
-          // Memory: MB -> Bytes (* 1024 * 1024)
-          // Disk: GB -> Bytes (* 1024 * 1024 * 1024)
-          // Network: KB -> Bytes (* 1024)
-
           const memTotalBytes = (data.memory_total || 0) * 1024 * 1024
           const memUsedBytes = (data.memory_used || 0) * 1024 * 1024
-
           const diskTotalBytes = (data.disk_total || 0) * 1024 * 1024 * 1024
           const diskUsedBytes = (data.disk_used || 0) * 1024 * 1024 * 1024
-
-          // Network Traffic (Total Bytes Transferred so far)
-          // Note: Backend sends TOTAL bytes since boot or similar counter? 
-          // Wait, monitor_services.py sends instantaneous rate?
-          // No, monitor_service.py: data["net_in"] = round(float(parts[1]) / 1024, 1) # KB total
-          // /proc/net/dev counters are cumulative totals.
-
           const netInBytes = (data.net_in || 0) * 1024
           const netOutBytes = (data.net_out || 0) * 1024
 
           // Calculate Speed
           if (lastNetData.timestamp > 0) {
-            const timeDiff = (now - lastNetData.timestamp) / 1000 // seconds
-            // Check for counter reset or overflow
+            const timeDiff = (now - lastNetData.timestamp) / 1000
             if (timeDiff > 0) {
               const upSpeed = (netOutBytes - lastNetData.bytes_sent) / timeDiff
               const downSpeed = (netInBytes - lastNetData.bytes_recv) / timeDiff
@@ -160,16 +145,13 @@ export default function Dashboard() {
             timestamp: now
           })
 
-          // Construct Standardized Data Object
           const formattedData = {
-            ...initialUsage, // keep static info placeholders
-            ...data, // overlay raw data
-            // Overwrite with converted bytes for display
+            ...initialUsage,
+            ...data,
             memory_total_bytes: memTotalBytes,
             memory_used_bytes: memUsedBytes,
             disk_total_bytes: diskTotalBytes,
             disk_used_bytes: diskUsedBytes,
-            // Keep CPU/Load as is
             cpu_usage: data.cpu_usage || 0,
             load: {
               load_1: data.load_1 || 0,
@@ -178,182 +160,171 @@ export default function Dashboard() {
             }
           }
 
-          setServerMetrics(currentServer.id, formattedData)
+          setServerMetrics(server.id, formattedData)
         }
       } catch (err) {
         console.error('WebSocket Error', err)
       }
     }
 
-    ws.onclose = () => console.log('WebSocket 连接已关闭')
+    ws.onclose = () => setIsConnected(false)
 
     return () => {
       if (ws.readyState === WebSocket.OPEN) ws.close()
     }
-  }, [currentServer, setServerMetrics, lastNetData.timestamp]) // Dependency on timestamp to update speed calculation closure? No, using functional update or ref is better, but this simple way works if re-runs are okay.
+  }, [server, setServerMetrics, lastNetData.timestamp]) // Note: Dependency array might cause frequent re-connects if specific props change. Server ID is stable.
 
-  if (!currentServer) {
-    return (
-      <div className="flex h-[400px] flex-col items-center justify-center text-center space-y-4">
-        <div className="bg-muted p-6 rounded-full">
-          <ServerIcon className="w-12 h-12 text-muted-foreground" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold">请选择服务器</h2>
-          <p className="text-muted-foreground mt-2">需要连接到服务器才能查看仪表盘</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Determine Load Status Color
+  // Determine Load Status Color - Adjusted for Blue Theme
   const getLoadStatus = (load, cores = 1) => {
     const ratio = load / cores
-    if (ratio < 0.7) return { text: '运行流畅', color: '#22c55e', icon: CheckCircle2 }
-    if (ratio < 1.0) return { text: '负载正常', color: '#3b82f6', icon: CheckCircle2 }
-    return { text: '负载过高', color: '#ef4444', icon: AlertTriangle }
+    // Using Blue as "Normal/Good" status instead of Green, based on user request?
+    // User said "Subject color not green change to blue"
+    // So "Normal" = Blue.
+    if (ratio < 0.7) return { text: '运行流畅', color: '#3b82f6', icon: CheckCircle2 } // Blue-500
+    if (ratio < 1.0) return { text: '负载正常', color: '#60a5fa', icon: CheckCircle2 } // Blue-400
+    return { text: '负载过高', color: '#ef4444', icon: AlertTriangle } // Red still makes sense for danger
   }
 
-  // Assume 4 cores if not available (or backend should send it)
-  // Monitor service currently sends CPU usage but maybe not core count per request?
-  // Let's rely on cpu_usage mostly.
   const loadStatus = getLoadStatus(systemInfo.load?.load_1 || 0, 4)
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-      {/* Top Cards Grid (Baota Style) */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-
-        {/* Card 1: Load Status */}
-        <Card className="shadow-sm border-l-4" style={{ borderLeftColor: loadStatus.color }}>
-          <CardContent className="p-6 flex flex-col items-center justify-center h-[180px] space-y-4">
-            <div className="relative">
-              <CircularProgress
-                value={Math.min((systemInfo.load?.load_1 || 0) * 100 / 4, 100)} // Rough estimate % based on load
-                color={loadStatus.color}
-                size={100}
-                label="负载"
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                {/* Center Content for Load */}
-                <div className="text-center bg-background/80 backdrop-blur-sm rounded-full p-2">
-                  <span className="text-xl font-bold" style={{ color: loadStatus.color }}>
-                    {loadStatus.text === '运行流畅' ? systemInfo.load?.load_1 : systemInfo.load?.load_1}
-                  </span>
-                </div>
-              </div>
+    <Card className="overflow-hidden border-t-4" style={{ borderTopColor: isConnected ? loadStatus.color : '#9ca3af' }}>
+      <CardContent className="p-4 space-y-4">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-2">
+            <ServerIcon className={`w-5 h-5 ${isConnected ? 'text-blue-500' : 'text-gray-400'}`} />
+            <div>
+              <h3 className="font-bold text-lg leading-none">{server.name}</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{server.host}</p>
             </div>
-            <div className="text-center">
-              <h3 className="font-semibold text-lg" style={{ color: loadStatus.color }}>{loadStatus.text}</h3>
-              <p className="text-xs text-muted-foreground">最近1分钟平均负载</p>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className={`text-xs px-2 py-0.5 rounded-full ${isConnected ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+            {isConnected ? '在线' : '离线'}
+          </div>
+        </div>
 
-        {/* Card 2: CPU */}
-        <Card className="shadow-sm">
-          <CardContent className="p-6 flex flex-col items-center justify-center h-[180px]">
+        <div className="grid grid-cols-4 gap-2">
+          {/* Load - Key Metric */}
+          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-slate-50 border border-slate-100 col-span-1">
+            <CircularProgress
+              value={Math.min((systemInfo.load?.load_1 || 0) * 100 / 4, 100)}
+              color={loadStatus.color}
+              size={60}
+              strokeWidth={6}
+              label=""
+            />
+            <span className="text-xs font-medium mt-1 text-center truncate w-full" style={{ color: loadStatus.color }}>
+              {loadStatus.text}
+            </span>
+            <span className="text-[10px] text-muted-foreground">{systemInfo.load?.load_1}</span>
+          </div>
+
+          {/* CPU */}
+          <div className="flex flex-col items-center justify-center col-span-1">
             <CircularProgress
               value={systemInfo.cpu_usage || 0}
-              color="#22c55e" // Green
-              size={110}
+              color="#3b82f6"
+              size={70}
+              strokeWidth={7}
               label="CPU"
-              subLabel={`${systemInfo.cpu_count || '-'} 核心`}
             />
-          </CardContent>
-        </Card>
+            <span className="text-[10px] text-muted-foreground mt-1">{systemInfo.cpu_count} 核</span>
+          </div>
 
-        {/* Card 3: Memory */}
-        <Card className="shadow-sm">
-          <CardContent className="p-6 flex flex-col items-center justify-center h-[180px]">
+          {/* Memory */}
+          <div className="flex flex-col items-center justify-center col-span-1">
             <CircularProgress
               value={systemInfo.memory_usage || 0}
-              color="#22c55e" // Green
-              size={110}
+              color="#3b82f6"
+              size={70}
+              strokeWidth={7}
               label="内存"
-              subLabel={`${formatBytes(systemInfo.memory_used_bytes)} / ${formatBytes(systemInfo.memory_total_bytes)}`}
             />
-          </CardContent>
-        </Card>
+            <span className="text-[10px] text-muted-foreground mt-1 truncate max-w-full" title={formatBytes(systemInfo.memory_used_bytes)}>
+              {formatBytes(systemInfo.memory_used_bytes)}
+            </span>
+          </div>
 
-        {/* Card 4: Disk */}
-        <Card className="shadow-sm">
-          <CardContent className="p-6 flex flex-col items-center justify-center h-[180px]">
+          {/* Disk */}
+          <div className="flex flex-col items-center justify-center col-span-1">
             <CircularProgress
               value={systemInfo.disk_usage || 0}
-              color={systemInfo.disk_usage > 80 ? '#ef4444' : '#22c55e'} // Red if > 80%
-              size={110}
-              label="/"
-              subLabel={`${formatBytes(systemInfo.disk_used_bytes)} / ${formatBytes(systemInfo.disk_total_bytes)}`}
+              color={systemInfo.disk_usage > 90 ? '#ef4444' : '#3b82f6'}
+              size={70}
+              strokeWidth={7}
+              label="磁盘"
             />
-          </CardContent>
-        </Card>
+            <span className="text-[10px] text-muted-foreground mt-1 truncate max-w-full">
+              {formatBytes(systemInfo.disk_used_bytes)}
+            </span>
+          </div>
+        </div>
+
+        {/* Network & Uptime Footer */}
+        <div className="bg-muted/20 -mx-4 -mb-4 p-3 mt-2 border-t text-xs flex justify-between items-center text-muted-foreground">
+          <div className="flex gap-3">
+            <div className="flex items-center gap-1" title="上传速度">
+              <ArrowUp className="w-3 h-3 text-blue-500" />
+              <span className="font-mono text-foreground/80">{formatBytes(netSpeed.upload)}/s</span>
+            </div>
+            <div className="flex items-center gap-1" title="下载速度">
+              <ArrowDown className="w-3 h-3 text-cyan-500" />
+              <span className="font-mono text-foreground/80">{formatBytes(netSpeed.download)}/s</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 truncate" title="系统运行时间">
+            <Clock className="w-3 h-3" />
+            <span>{typeof systemInfo.uptime === 'number' ? `${Math.floor(systemInfo.uptime / 86400)}天` : '-'}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function Dashboard() {
+  const { servers, currentServer, fetchServers, setCurrentServer } = useServerStore()
+
+  // Ensure we have the latest server list on mount
+  useEffect(() => {
+    fetchServers()
+  }, [fetchServers])
+
+  // Select the first server if none selected (optional logic, maybe not needed for dashboard view)
+  useEffect(() => {
+    if (servers.length > 0 && !currentServer) {
+      setCurrentServer(servers[0])
+    }
+  }, [servers, currentServer, setCurrentServer])
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">服务器看板</h2>
+        <Button variant="outline" size="sm" onClick={() => fetchServers()}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          刷新列表
+        </Button>
       </div>
 
-      {/* Network & Info Section */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Network Traffic */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <ArrowUp className="w-4 h-4 text-green-500" />
-              <ArrowDown className="w-4 h-4 text-blue-500" />
-              网络流量
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-muted/30 p-3 rounded-lg border">
-                <div className="text-xs text-muted-foreground mb-1">上行速度</div>
-                <div className="text-xl font-mono text-green-600 font-semibold">
-                  {formatBytes(netSpeed.upload)}/s
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  总发送: {formatBytes(lastNetData.bytes_sent)}
-                </div>
-              </div>
-              <div className="bg-muted/30 p-3 rounded-lg border">
-                <div className="text-xs text-muted-foreground mb-1">下行速度</div>
-                <div className="text-xl font-mono text-blue-600 font-semibold">
-                  {formatBytes(netSpeed.download)}/s
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  总接收: {formatBytes(lastNetData.bytes_recv)}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Server Details */}
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              系统状态
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">系统类型</span>
-                <span>{systemInfo.platform} {systemInfo.platform_release}</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">运行时间</span>
-                <span>{typeof systemInfo.uptime === 'number' ? `${Math.floor(systemInfo.uptime / 86400)}天 ${Math.floor((systemInfo.uptime % 86400) / 3600)}小时` : '-'}</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">负载平均值 (1/5/15)</span>
-                <span className="font-mono">
-                  {systemInfo.load?.load_1} / {systemInfo.load?.load_5} / {systemInfo.load?.load_15}
-                </span>
-              </div>
-              <div className="flex justify-between pt-1">
-                <span className="text-muted-foreground">CPU型号</span>
-                <span className="truncate max-w-[200px]" title={systemInfo.processor}>{systemInfo.processor || '-'}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {servers.length === 0 ? (
+        <div className="flex h-[400px] flex-col items-center justify-center text-center space-y-4 border-2 border-dashed rounded-lg">
+          <div className="bg-muted p-6 rounded-full">
+            <ServerIcon className="w-12 h-12 text-muted-foreground" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">暂无服务器</h2>
+            <p className="text-muted-foreground mt-2">请先添加服务器以查看监控数据</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {servers.map(server => (
+            <ServerMonitorCard key={server.id} server={server} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
