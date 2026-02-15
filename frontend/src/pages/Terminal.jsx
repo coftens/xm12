@@ -5,6 +5,7 @@ import '@xterm/xterm/css/xterm.css'
 import { useServerStore } from '@/store/useServerStore'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, Terminal as TerminalIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function SSHConnection() {
   const terminalRef = useRef(null)
