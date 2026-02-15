@@ -1,6 +1,6 @@
 """Pydantic 数据模型（请求/响应）"""
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
 
 
@@ -206,4 +206,4 @@ class OperationLogOut(BaseModel):
 class ApiResponse(BaseModel):
     code: int = 0
     message: str = "success"
-    data: Optional[object] = None
+    data: Optional[Any] = None
