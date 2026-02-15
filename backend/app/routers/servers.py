@@ -1,7 +1,7 @@
 """服务器资产管理路由"""
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 from app.database import get_db
 from app.models import Server, ServerGroup, OperationLog, User
 from app.schemas import (
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/servers", tags=["服务器管理"])
 
 
 # ==================== 分组管理 ====================
-@router.get("/groups", response_model=list[ServerGroupOut])
+@router.get("/groups", response_model=List[ServerGroupOut])
 async def list_groups(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -72,7 +72,7 @@ async def delete_group(
 
 
 # ==================== 服务器管理 ====================
-@router.get("", response_model=list[ServerOut])
+@router.get("", response_model=List[ServerOut])
 async def list_servers(
     group_id: Optional[int] = None,
     keyword: Optional[str] = None,

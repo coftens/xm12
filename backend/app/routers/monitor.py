@@ -1,5 +1,6 @@
 """监控路由"""
 import datetime
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -31,7 +32,7 @@ async def get_realtime_monitor(
     return data
 
 
-@router.get("/{server_id}/history", response_model=list[MonitorData])
+@router.get("/{server_id}/history", response_model=List[MonitorData])
 async def get_history_monitor(
     server_id: int,
     hours: int = Query(default=24, ge=1, le=168),
@@ -48,7 +49,7 @@ async def get_history_monitor(
 
 
 # ==================== 告警规则 ====================
-@router.get("/alerts/rules", response_model=list[AlertRuleOut])
+@router.get("/alerts/rules", response_model=List[AlertRuleOut])
 async def list_alert_rules(
     server_id: int = None,
     current_user: User = Depends(get_current_user),
@@ -87,7 +88,7 @@ async def delete_alert_rule(
     return {"message": "规则已删除"}
 
 
-@router.get("/alerts/logs", response_model=list[AlertLogOut])
+@router.get("/alerts/logs", response_model=List[AlertLogOut])
 async def list_alert_logs(
     server_id: int = None,
     limit: int = 50,

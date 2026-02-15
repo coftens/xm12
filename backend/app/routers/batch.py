@@ -1,6 +1,7 @@
 """批量操作路由"""
 import asyncio
 import datetime
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -79,7 +80,7 @@ async def batch_execute_command(
     return task
 
 
-@router.get("/tasks", response_model=list[BatchTaskOut])
+@router.get("/tasks", response_model=List[BatchTaskOut])
 async def list_batch_tasks(
     limit: int = 20,
     current_user: User = Depends(get_current_user),
@@ -92,7 +93,7 @@ async def list_batch_tasks(
     return tasks
 
 
-@router.get("/tasks/{task_id}/results", response_model=list[BatchTaskResultOut])
+@router.get("/tasks/{task_id}/results", response_model=List[BatchTaskResultOut])
 async def get_task_results(
     task_id: int,
     current_user: User = Depends(get_current_user),

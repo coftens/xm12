@@ -1,4 +1,5 @@
 """日志路由"""
+from typing import List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -10,7 +11,7 @@ from app.auth import get_current_user, get_admin_user
 router = APIRouter(prefix="/api/logs", tags=["日志"])
 
 
-@router.get("", response_model=list[OperationLogOut])
+@router.get("", response_model=List[OperationLogOut])
 async def list_logs(
     action: str = None,
     username: str = None,

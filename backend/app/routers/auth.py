@@ -1,4 +1,5 @@
 """认证路由"""
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -60,7 +61,7 @@ async def change_password(
 
 
 # ==================== 用户管理（管理员） ====================
-@router.get("/users", response_model=list[UserOut])
+@router.get("/users", response_model=List[UserOut])
 async def list_users(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
