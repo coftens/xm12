@@ -1,6 +1,7 @@
 """JWT 认证模块"""
 from datetime import datetime, timedelta
 from typing import Optional
+import logging
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -9,6 +10,8 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models import User
+
+logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -40,15 +43,23 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        logger.debug(f"Verifying token with SECRET_KEY length: {len(settings.SECRET_KEY)}")
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        logger.debug(f"Token decoded successfully: {payload}")
         user_id: int = payload.get("sub")
         if user_id is None:
+            logger.warning("Token has no 'sub' claim")
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"JWT verification failed: {str(e)}")
         raise credentials_exception
 
     user = db.query(User).filter(User.id == user_id).first()
-    if user is None or not user.is_active:
+    if user is None:
+        logger.warning(f"User not found for id: {user_id}")
+        raise credentials_exception
+    if not user.is_active:
+        logger.warning(f"User inactive: {user_id}")
         raise credentials_exception
     return user
 
