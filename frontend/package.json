@@ -4,14 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node -r ./polyfill-crypto.cjs ./node_modules/vite/bin/vite.js",
-    "build": "node -r ./polyfill-crypto.cjs ./node_modules/vite/bin/vite.js build",
+    "dev": "vite",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
     "axios": "^1.6.8",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",
     "dayjs": "^1.11.10",
     "echarts": "^5.5.0",
