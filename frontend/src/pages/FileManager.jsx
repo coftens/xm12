@@ -46,6 +46,12 @@ export default function FileManager() {
   const fetchFiles = useCallback(async (path) => {
     if (!currentServer) return
     setLoading(true)
+    // Update path immediately to give feedback
+    setCurrentPath(path)
+    // Clear selection immediately
+    setSelectedFiles([])
+    setFiles([]) // Clear files to show loading state
+    
     try {
       // API: GET /api/files/:server_id/list?path=/root
       const res = await api.get(`/api/files/${currentServer.id}/list`, {
@@ -66,6 +72,7 @@ export default function FileManager() {
     } catch (err) {
       console.error("Failed to list files", err)
       // If permission denied or not exists, maybe go back up
+      alert("无法访问该目录: " + (err.response?.data?.detail || err.message))
     } finally {
       setLoading(false)
     }
@@ -153,6 +160,10 @@ export default function FileManager() {
         setUploading(false)
         if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  const handleNavigate = (path) => {
+    fetchFiles(path)
   }
 
   const handleGoUp = () => {
@@ -353,6 +364,16 @@ export default function FileManager() {
                </tr>
             </thead>
             <tbody className="divide-y divide-border">
+               {files.length === 0 && loading && (
+                   <tr>
+                       <td colSpan={7} className="p-12 text-center text-muted-foreground">
+                           <div className="flex flex-col items-center gap-2">
+                               <RefreshCw className="w-10 h-10 animate-spin text-primary" />
+                               <span>加载中...</span>
+                           </div>
+                       </td>
+                   </tr>
+               )}
                {files.length === 0 && !loading && (
                    <tr>
                        <td colSpan={7} className="p-12 text-center text-muted-foreground">
@@ -386,16 +407,20 @@ export default function FileManager() {
                            <div 
                               className="flex items-center gap-3 cursor-pointer select-none group/name"
                               onClick={() => {
-                                  if (file.is_dir) handleNavigate(`${currentPath === '/' ? '' : currentPath}/${file.name}`)
+                                  if (file.is_dir) {
+                                      const newPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`
+                                      handleNavigate(newPath)
+                                  }
                               }}
                            >
-                               <div className="text-muted-foreground group-hover/name:text-primary transition-colors">
-                                  {getFileIcon(file)}
+                               <div className={"transition-colors " + (file.is_dir ? "text-yellow-400 group-hover:text-yellow-500" : "text-muted-foreground")}>
+                                  {file.is_dir ? <Folder className="w-5 h-5 fill-current" /> : getFileIcon(file)}
                                </div>
                                <span className={cn(
-                                   "truncate max-w-[300px] lg:max-w-[400px]",
-                                   file.is_dir && "font-medium text-foreground group-hover/name:text-primary underline-offset-4 group-hover/name:underline", 
-                                   !file.is_dir && "text-muted-foreground group-hover/name:text-foreground"
+                                   "truncate max-w-[300px] lg:max-w-[400px] font-medium transition-colors",
+                                   file.is_dir 
+                                     ? "text-foreground group-hover:text-primary cursor-pointer hover:underline underline-offset-4" 
+                                     : "text-muted-foreground"
                                )}>
                                    {file.name}
                                </span>
