@@ -3,10 +3,12 @@ import api from '@/api'
 import { Plus, Power, Terminal, Trash, Edit, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import AddServerDialog from '@/components/AddServerDialog'
 
 export default function Servers() {
   const [servers, setServers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export default function Servers() {
         </div>
         <button 
           className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
-          onClick={() => alert('TODO: Add Dialog')}
+          onClick={() => setIsDialogOpen(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
           添加服务器
@@ -139,6 +141,12 @@ export default function Servers() {
           </table>
         </div>
       </div>
+
+      <AddServerDialog 
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onSuccess={() => fetchServers()}
+      />
     </div>
   )
 }
