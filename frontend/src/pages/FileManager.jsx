@@ -467,6 +467,17 @@ export default function FileManager() {
             <span>已选择 {selectedFiles.length} 项</span>
         </div>
       </div>
+
+      {/* Upload Confirmation Dialog */}
+      <Dialog 
+        open={uploadConfirmation.open}
+        title="确认上传"
+        description={`确定要上传 ${uploadConfirmation.files.length} 个文件到 ${currentPath} 吗？`}
+        onConfirm={confirmUpload}
+        onCancel={() => setUploadConfirmation({ open: false, files: [] })}
+        confirmText="上传"
+        cancelText="取消"
+      />
     </div>
   )
 }
