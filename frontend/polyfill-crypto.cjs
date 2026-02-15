@@ -9,12 +9,22 @@ if (!globalThis.crypto) {
 }
 
 // 2. Polyfill getRandomValues if missing
-if (!globalThis.crypto.getRandomValues) {
-  globalThis.crypto.getRandomValues = function(buffer) {
-    if (!buffer) return buffer;
-    // crypto.randomFillSync works with TypedArrays in Node 16
-    return crypto.randomFillSync(buffer);
-  };
+if (!global.crypto.getRandomValues) {
+  // Use a proper implementation that matches the signature
+  global.crypto.getRandomValues = (buffer) => {
+    return  crypto.randomFillSync(buffer);
+  }
+}
+// Force overwrite just in case if it exists but is broken or null
+else {
+  try {
+      global.crypto.getRandomValues(new Uint8Array(1));
+  } catch (e) {
+      // It exists but failed (likely "not a function" on webcrypto object)
+      global.crypto.getRandomValues = (buffer) => {
+        return  crypto.randomFillSync(buffer);
+      }
+  }
 }
 
 // 3. Polyfill randomUUID if missing
