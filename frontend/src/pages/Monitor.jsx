@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 import { useServerStore } from '@/store/useServerStore'
 import { Activity, Clock, Layers, Zap } from 'lucide-react'
 import api from '@/api'
+import { cn } from '@/lib/utils'
 
 const Monitor = () => {
     const currentServer = useServerStore(state => state.currentServer)

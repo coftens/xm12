@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
-import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
 import { useServerStore } from '@/store/useServerStore'
 import { Button } from '@/components/ui/button'
@@ -33,7 +32,6 @@ export default function SSHConnection() {
 
       const fitAddon = new FitAddon()
       term.loadAddon(fitAddon)
-      term.loadAddon(new WebLinksAddon())
 
       if (terminalRef.current) {
         term.open(terminalRef.current)
