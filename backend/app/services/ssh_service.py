@@ -71,6 +71,6 @@ class SSHService:
     def create_shell(self, server: Server) -> Tuple[paramiko.SSHClient, paramiko.Channel]:
         """创建交互式 Shell（用于 WebSocket SSH）"""
         client = self._create_client(server)
-        channel = client.invoke_shell(term='xterm-256color', width=120, height=40)
-        channel.settimeout(0)
+        channel = client.invoke_shell(term='xterm-256color', width=80, height=24)
+        # channel.settimeout(0)  # Remove non-blocking for thread executor
         return client, channel

@@ -86,17 +86,26 @@ async def ssh_terminal(websocket: WebSocket, server_id: int):
         # 从 SSH 读取数据并发送到 WebSocket
         async def read_ssh():
             loop = asyncio.get_event_loop()
-            while True:
-                try:
-                    data = await loop.run_in_executor(None, lambda: channel.recv(4096))
+            try:
+                while True:
+                    if channel.exit_status_ready():
+                        break
+                    try:
+                        data = await loop.run_in_executor(None, lambda: channel.recv(4096))
+                    except Exception:
+                        break
+                    
                     if not data:
                         break
+                        
                     await websocket.send_text(json.dumps({
                         "type": "output",
                         "data": data.decode('utf-8', errors='replace')
                     }))
-                except Exception:
-                    break
+            except Exception as e:
+                print(f"SSH Read Error: {e}")
+            finally:
+                await websocket.close()
 
         read_task = asyncio.create_task(read_ssh())
 
