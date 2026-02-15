@@ -90,7 +90,7 @@ const formatBytes = (bytes) => {
 const ServerMonitorCard = ({ server }) => {
   const { setServerMetrics, serverMetrics } = useServerStore()
   const [netSpeed, setNetSpeed] = useState({ upload: 0, download: 0 })
-  const [lastNetData, setLastNetData] = useState({ bytes_sent: 0, bytes_recv: 0, timestamp: 0 })
+  const lastNetDataRef = React.useRef({ bytes_sent: 0, bytes_recv: 0, timestamp: 0 })
   const [isConnected, setIsConnected] = useState(false)
 
   // Use cached metrics or initial
@@ -126,12 +126,13 @@ const ServerMonitorCard = ({ server }) => {
           const netInBytes = (data.net_in || 0) * 1024
           const netOutBytes = (data.net_out || 0) * 1024
 
-          // Calculate Speed
-          if (lastNetData.timestamp > 0) {
-            const timeDiff = (now - lastNetData.timestamp) / 1000
+          // Calculate Speed using Ref current value
+          const lastData = lastNetDataRef.current
+          if (lastData.timestamp > 0) {
+            const timeDiff = (now - lastData.timestamp) / 1000
             if (timeDiff > 0) {
-              const upSpeed = (netOutBytes - lastNetData.bytes_sent) / timeDiff
-              const downSpeed = (netInBytes - lastNetData.bytes_recv) / timeDiff
+              const upSpeed = (netOutBytes - lastData.bytes_sent) / timeDiff
+              const downSpeed = (netInBytes - lastData.bytes_recv) / timeDiff
               setNetSpeed({
                 upload: upSpeed > 0 ? upSpeed : 0,
                 download: downSpeed > 0 ? downSpeed : 0
@@ -139,11 +140,12 @@ const ServerMonitorCard = ({ server }) => {
             }
           }
 
-          setLastNetData({
+          // Update Ref
+          lastNetDataRef.current = {
             bytes_sent: netOutBytes,
             bytes_recv: netInBytes,
             timestamp: now
-          })
+          }
 
           const formattedData = {
             ...initialUsage,
@@ -172,7 +174,8 @@ const ServerMonitorCard = ({ server }) => {
     return () => {
       if (ws.readyState === WebSocket.OPEN) ws.close()
     }
-  }, [server, setServerMetrics, lastNetData.timestamp]) // Note: Dependency array might cause frequent re-connects if specific props change. Server ID is stable.
+    // Remove lastNetData.timestamp from dependency array to prevent loop
+  }, [server.id, setServerMetrics])
 
   // Determine Load Status Color - Adjusted for Blue Theme
   const getLoadStatus = (load, cores = 1) => {
