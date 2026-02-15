@@ -92,7 +92,7 @@ async def list_servers(
     servers = query.all()
     result = []
     for s in servers:
-        out = ServerOut.model_validate(s)
+        out = ServerOut.from_orm(s)
         if s.group:
             out.group_name = s.group.name
         result.append(out)
@@ -108,7 +108,7 @@ async def get_server(
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=404, detail="服务器不存在")
-    out = ServerOut.model_validate(server)
+    out = ServerOut.from_orm(server)
     if server.group:
         out.group_name = server.group.name
     return out
@@ -153,7 +153,7 @@ async def create_server(
     db.commit()
     db.refresh(server)
 
-    out = ServerOut.model_validate(server)
+    out = ServerOut.from_orm(server)
     if server.group:
         out.group_name = server.group.name
     return out
@@ -204,7 +204,7 @@ async def update_server(
     db.commit()
     db.refresh(server)
 
-    out = ServerOut.model_validate(server)
+    out = ServerOut.from_orm(server)
     if server.group:
         out.group_name = server.group.name
     return out

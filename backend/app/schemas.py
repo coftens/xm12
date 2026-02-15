@@ -25,7 +25,7 @@ class UserOut(BaseModel):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class Token(BaseModel):
@@ -51,7 +51,7 @@ class ServerGroupOut(BaseModel):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # ==================== 服务器 ====================
@@ -95,7 +95,7 @@ class ServerOut(BaseModel):
     group_name: Optional[str] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # ==================== 监控 ====================
@@ -115,7 +115,7 @@ class MonitorData(BaseModel):
     created_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # ==================== 告警 ====================
@@ -137,7 +137,7 @@ class AlertRuleOut(BaseModel):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class AlertLogOut(BaseModel):
@@ -152,7 +152,7 @@ class AlertLogOut(BaseModel):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # ==================== 批量操作 ====================
@@ -171,7 +171,7 @@ class BatchTaskOut(BaseModel):
     completed_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class BatchTaskResultOut(BaseModel):
@@ -184,7 +184,7 @@ class BatchTaskResultOut(BaseModel):
     error: str
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # ==================== 日志 ====================
@@ -199,7 +199,7 @@ class OperationLogOut(BaseModel):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # ==================== 通用 ====================
