@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import logging
-from jose import JWTError, jwt
+import jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -29,7 +29,12 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    logger.debug(f"Encoding token with data: {to_encode}, using algorithm: {settings.ALGORITHM}")
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    # PyJWT 1.7.1 returns string directly in Python 3.6+
+    if isinstance(encoded_jwt, bytes):
+        encoded_jwt = encoded_jwt.decode('utf-8')
+    return encoded_jwt
 
 
 async def get_current_user(
@@ -43,15 +48,21 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        logger.debug(f"Verifying token with SECRET_KEY length: {len(settings.SECRET_KEY)}")
+        logger.debug(f"Verifying token with SECRET_KEY: {settings.SECRET_KEY[:10]}..., algorithm: {settings.ALGORITHM}")
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         logger.debug(f"Token decoded successfully: {payload}")
         user_id: int = payload.get("sub")
         if user_id is None:
             logger.warning("Token has no 'sub' claim")
             raise credentials_exception
-    except JWTError as e:
+    except jwt.ExpiredSignatureError:
+        logger.error("Token expired")
+        raise credentials_exception
+    except jwt.InvalidTokenError as e:
         logger.error(f"JWT verification failed: {str(e)}")
+        raise credentials_exception
+    except Exception as e:
+        logger.error(f"Unexpected error during JWT verification: {str(e)}")
         raise credentials_exception
 
     user = db.query(User).filter(User.id == user_id).first()
