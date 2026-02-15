@@ -1,12 +1,14 @@
 # 服务器远程管理平台 - 部署流程文档
 
-> **重要提醒**：每次修改前端代码后，必须按照此流程操作，否则会出现 MIME type 错误！
+> **重要提醒**：本文档分为两部分，请根据您当前所在的环境选择对应的操作！
 
-## 📋 完整部署流程（每次必须执行）
+---
 
-### 1. 本地开发环境（Windows）
+## 🖥️ 第一部分：本地开发环境（Windows 电脑）
 
-#### 前端修改后的操作步骤：
+**⚠️ 以下命令只在您的 Windows 电脑上执行，不要在服务器上执行！**
+
+### 前端修改后的操作步骤：
 
 ```powershell
 # 进入前端目录
@@ -46,9 +48,11 @@ git push
 
 ---
 
-### 2. 服务器端（Linux）
+## 🐧 第二部分：服务器端（Linux 服务器）
 
-#### 更新前端代码：
+**⚠️ 以下命令只在您的服务器上执行！服务器端只需要拉取代码，不需要编译、提交或推送！**
+
+### 更新前端代码：
 
 ```bash
 # 进入前端目录
@@ -57,14 +61,18 @@ cd /www/wwwroot/fwq/frontend
 # 拉取最新代码（包含编译好的 dist 文件）
 git pull
 
-# 强制刷新浏览器（Ctrl + F5）
+# 完成！浏览器强制刷新（Ctrl + F5）即可看到更新
 ```
+
+**❌ 服务器上不需要执行**：
+- `npm run build`（已经在本地编译好了）
+- `git add`、`git commit`、`git push`（服务器只拉取，不提交）
 
 **前端无需重启任何服务**：Nginx 直接读取 `dist/` 文件夹中的静态文件。
 
 ---
 
-#### 更新并重启后端：
+### 更新并重启后端：
 
 ```bash
 # 1. 进入后端目录
@@ -167,7 +175,7 @@ location /api/ {
 
 ## 📝 快速参考命令
 
-### 本地开发（每次前端修改后）
+### 💻 本地开发（Windows）- 每次前端修改后执行
 ```powershell
 cd frontend && npm run build && cd ..
 git add -f frontend/dist
@@ -176,12 +184,12 @@ git commit -m "your message"
 git push
 ```
 
-### 服务器更新
+### 🐧 服务器更新（Linux）- 拉取代码并重启
 ```bash
-# 前端
+# 前端更新（只需 git pull）
 cd /www/wwwroot/fwq/frontend && git pull
 
-# 后端
+# 后端更新并重启
 cd /www/wwwroot/fwq/backend && git pull
 ps aux | grep uvicorn
 kill <PID>
@@ -213,4 +221,7 @@ nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
 
 ---
 
-**最后提醒**：每次修改前端代码后，都必须 `git add -f frontend/dist` ！
+**最后提醒**：
+- ✅ **本地（Windows）**：编译 → 强制添加 dist → 提交 → 推送
+- ✅ **服务器（Linux）**：只拉取代码，不编译不提交！
+- ⚠️ **每次修改前端代码后，本地必须执行 `git add -f frontend/dist`！**
