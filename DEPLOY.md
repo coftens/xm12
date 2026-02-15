@@ -161,13 +161,24 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 **Nginx WebSocket 配置示例**：
 ```nginx
-location /api/ {
+# 1. WebSocket 专用配置 (匹配 /api/ws/ 开头的路径)
+location /api/ws/ {
     proxy_pass http://127.0.0.1:8000;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+# 2. 普通 API 配置 (匹配其他 /api/ 开头的路径)
+location /api/ {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    # 注意：这里普通请求不需要 Upgrade 头
 }
 ```
 
