@@ -7,6 +7,7 @@ export const useServerStore = create(
     (set, get) => ({
       currentServer: null,
       servers: [],
+      setServers: (servers) => set({ servers }),
       setCurrentServer: (server) => set({ currentServer: server }),
       fetchServers: async () => {
         try {
