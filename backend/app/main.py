@@ -150,9 +150,9 @@ app.add_middleware(
 # 注册路由
 app.include_router(auth.router)
 app.include_router(servers.router)
-app.include_router(ssh.router)
+app.include_router(ssh.router, prefix="/api")
 app.include_router(monitor.router)
-app.include_router(monitor_ws.router)
+app.include_router(monitor_ws.router, prefix="/api")
 app.include_router(batch.router)
 app.include_router(logs.router)
 app.include_router(files.router)
