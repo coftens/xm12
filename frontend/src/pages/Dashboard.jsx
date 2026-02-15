@@ -209,7 +209,7 @@ const ServerMonitorCard = ({ server }) => {
 
         <div className="grid grid-cols-4 gap-2">
           {/* Load - Key Metric */}
-          <div className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-100/10 col-span-1">
+          <div className="flex flex-col items-center justify-center p-2 col-span-1">
             <CircularProgress
               value={Math.min((systemInfo.load?.load_1 || 0) * 100 / (systemInfo.cpu_count || 1), 100)}
               color={loadStatus.color}
