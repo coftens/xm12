@@ -1,7 +1,15 @@
 """FastAPI 应用入口"""
 import os
 import sys
+import logging
 from fastapi import FastAPI
+
+# 配置日志
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Python 3.6 兼容性
 if sys.version_info >= (3, 7):
