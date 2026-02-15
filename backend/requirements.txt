@@ -10,3 +10,4 @@ pydantic==1.8.2
 websockets==8.1
 aiofiles==0.6.0
 apscheduler==3.6.3
+async-generator==1.10.0

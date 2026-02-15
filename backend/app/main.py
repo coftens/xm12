@@ -1,7 +1,13 @@
 """FastAPI 应用入口"""
 import os
-from contextlib import asynccontextmanager
+import sys
 from fastapi import FastAPI
+
+# Python 3.6 兼容性
+if sys.version_info >= (3, 7):
+    from contextlib import asynccontextmanager
+else:
+    from async_generator import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 
