@@ -24,10 +24,13 @@ const initialUsage = {
 }
 
 export default function Dashboard() {
-  const currentServer = useServerStore(state => state.currentServer)
-  const [systemInfo, setSystemInfo] = useState(initialUsage)
-  const [loading, setLoading] = useState(false)
+  const { currentServer, serverMetrics, setServerMetrics } = useServerStore()
   
+  // Use cached metrics if available, otherwise default to initialUsage
+  const systemInfo = (currentServer && serverMetrics[currentServer.id]) 
+    ? serverMetrics[currentServer.id] 
+    : initialUsage
+
   // Fetch system info periodically
   useEffect(() => {
     if (!currentServer) return
@@ -38,7 +41,7 @@ export default function Dashboard() {
         const data = res.data
         
         // Adapt backend flat structure to frontend nested structure
-        setSystemInfo({
+        const adaptedData = {
           cpu_percent: data.cpu_usage || 0,
           cpu_count: data.cpu_cores || 0,
           memory: { 
@@ -57,16 +60,20 @@ export default function Dashboard() {
             bytes_recv: data.net_io?.bytes_recv || 0
           },
           uptime: data.uptime || 0
-        })
+        }
+
+        setServerMetrics(currentServer.id, adaptedData)
       } catch (err) {
         console.error("Failed to fetch system info", err)
       }
     }
     
+    // Fetch immediately only if we don't have data, otherwise respect the interval or fetch quietly
+    // Actually, always fetch fresh data, but the UI already shows cached data
     fetchData()
     const interval = setInterval(fetchData, 5000)
     return () => clearInterval(interval)
-  }, [currentServer])
+  }, [currentServer, setServerMetrics])
 
   if (!currentServer) {
     return (
@@ -118,6 +125,7 @@ export default function Dashboard() {
 
   // Format Bytes
   const formatBytes = (bytes) => {
+    if (!Number.isFinite(bytes) || bytes < 0) return '0 B'
     if (bytes === 0) return '0 B'
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB']

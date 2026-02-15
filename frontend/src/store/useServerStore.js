@@ -7,8 +7,12 @@ export const useServerStore = create(
     (set, get) => ({
       currentServer: null,
       servers: [],
+      serverMetrics: {}, // Cache for server dashboard data
       setServers: (servers) => set({ servers }),
       setCurrentServer: (server) => set({ currentServer: server }),
+      setServerMetrics: (serverId, data) => set((state) => ({
+        serverMetrics: { ...state.serverMetrics, [serverId]: data }
+      })),
       fetchServers: async () => {
         try {
           const res = await api.get('/api/servers')
