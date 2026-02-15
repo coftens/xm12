@@ -42,9 +42,9 @@ export default function Dashboard() {
     const token = localStorage.getItem('token')
     if (!token) return
 
-    // 构建 WebSocket URL
+    // 构建 WebSocket URL（使用 location.host 包含端口，通过 Nginx 代理）
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.hostname}:8000/api/ws/monitor/${currentServer.id}?token=${token}`
+    const wsUrl = `${protocol}//${window.location.host}/api/ws/monitor/${currentServer.id}?token=${token}`
 
     // 创建 WebSocket 连接
     const ws = new WebSocket(wsUrl)
