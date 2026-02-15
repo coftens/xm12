@@ -91,7 +91,18 @@ export default function SSHConnection() {
     }
 
     ws.onmessage = (event) => {
-      term.write(event.data)
+      try {
+        const msg = JSON.parse(event.data)
+        if (msg.type === 'output' || msg.type === 'connected') {
+            term.write(msg.data)
+        } else if (msg.type === 'error') {
+            term.writeln(`\r\n\x1b[31mError: ${msg.data}\x1b[0m\r\n`)
+        }
+      } catch (e) {
+          // If not JSON, maybe just write it? Or ignore?
+          // term.write(event.data)
+          console.error("Failed to parse websocket message", event.data)
+      }
     }
 
     ws.onclose = () => {
