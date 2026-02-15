@@ -73,7 +73,7 @@ export default function SSHConnection() {
         backendHost = `${window.location.hostname}:8888`;
     }
 
-    const wsUrl = `${protocol}//${backendHost}/ws/ssh/${currentServer.id}/ws`
+    const wsUrl = `${protocol}//${backendHost}/ws/ssh/${currentServer.id}`
     
     // Auth token in URL or protocol is tricky with standard WebSocket in browser if headers not supported
     // Usually we pass token as a query param or strict cookie.

@@ -27,7 +27,11 @@ export default function FileManager() {
       const res = await api.get(`/api/files/${currentServer.id}/list`, {
         params: { path }
       })
-      if (Array.isArray(res.data)) {
+      // Check if it's the new format { path: "/", files: [...] }
+      if (res.data && Array.isArray(res.data.files)) {
+        setFiles(res.data.files)
+      } else if (Array.isArray(res.data)) {
+        // Fallback for old format if any
         setFiles(res.data)
       } else {
         console.error("Invalid file list format", res.data)
