@@ -58,11 +58,15 @@ async def monitor_stream(websocket: WebSocket, server_id: int):
 
         system_service = MonitorService()
         
+        
+        loop = asyncio.get_event_loop()
+
         # 持续推送监控数据
         while True:
             try:
+                # Run blocking SSH call in a separate thread
                 # 获取系统信息
-                system_info = system_service.collect(server)
+                system_info = await loop.run_in_executor(None, system_service.collect, server)
                 
                 if system_info:
                     # 发送数据
