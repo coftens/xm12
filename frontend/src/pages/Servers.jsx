@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react'
 import api from '@/api'
-import { Plus, Power, Terminal, Trash, Edit, RefreshCw } from 'lucide-react'
+import { Plus, Power, Terminal, Trash, Edit, RefreshCw, Files, Activity } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import AddServerDialog from '@/components/AddServerDialog'
+import { useServerStore } from '@/store/useServerStore'
 
 export default function Servers() {
-  const [servers, setServers] = useState([])
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const navigate = useNavigate()
+  
+  const { servers, setServers, currentServer, setCurrentServer } = useServerStore()
 
   useEffect(() => {
     fetchServers()
@@ -19,13 +21,16 @@ export default function Servers() {
     setLoading(true)
     try {
       const res = await api.get('/api/servers')
-      // Adapt API response if needed, assuming array
       setServers(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSelectServer = (server) => {
+    setCurrentServer(server)
   }
 
   const handleDelete = async (id) => {
@@ -82,9 +87,23 @@ export default function Servers() {
                   </td>
                 </tr>
               ) : (
-                servers.map((server) => (
-                  <tr key={server.id} className="border-b border-border transition-colors hover:bg-muted/50">
-                    <td className="p-4 align-middle font-medium">{server.name}</td>
+                servers.map((server) => {
+                  const isSelected = currentServer?.id === server.id
+                  return (
+                  <tr 
+                    key={server.id} 
+                    className={cn(
+                      "border-b border-border transition-colors hover:bg-muted/50 cursor-pointer",
+                      isSelected && "bg-muted/50 border-l-2 border-l-primary"
+                    )}
+                    onClick={() => handleSelectServer(server)}
+                  >
+                    <td className="p-4 align-middle font-medium">
+                      <div className="flex items-center gap-2">
+                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        {server.name}
+                      </div>
+                    </td>
                     <td className="p-4 align-middle">
                       <div className="flex flex-col">
                         <span>{server.host}</span>
@@ -104,13 +123,36 @@ export default function Servers() {
                     <td className="p-4 align-middle text-muted-foreground">
                       {server.description || '-'}
                     </td>
-                    <td className="p-4 align-middle text-right gap-2 flex justify-end">
+                    <td className="p-4 align-middle text-right gap-2 flex justify-end" onClick={(e) => e.stopPropagation()}>
                       <button 
-                        className="p-2 hover:bg-accent rounded-md"
-                        title="终端"
-                        onClick={() => navigate('/terminal')}
+                        className="p-2 hover:bg-accent rounded-md text-primary"
+                        title="SSH终端"
+                        onClick={() => {
+                          setCurrentServer(server)
+                          navigate('/terminal')
+                        }}
                       >
                         <Terminal className="w-4 h-4" />
+                      </button>
+                      <button 
+                        className="p-2 hover:bg-accent rounded-md text-primary"
+                        title="文件管理"
+                        onClick={() => {
+                          setCurrentServer(server)
+                          navigate('/files')
+                        }}
+                      >
+                        <Files className="w-4 h-4" />
+                      </button>
+                      <button 
+                        className="p-2 hover:bg-accent rounded-md text-primary"
+                        title="资源监控"
+                        onClick={() => {
+                          setCurrentServer(server)
+                          navigate('/monitor')
+                        }}
+                      >
+                        <Activity className="w-4 h-4" />
                       </button>
                       <button 
                         className="p-2 hover:bg-accent rounded-md"
@@ -135,7 +177,7 @@ export default function Servers() {
                       </button>
                     </td>
                   </tr>
-                ))
+                )})
               )}
             </tbody>
           </table>

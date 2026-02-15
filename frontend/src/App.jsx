@@ -6,6 +6,8 @@ import Servers from './pages/Servers'
 import Terminal from './pages/Terminal'
 import FileManager from './pages/FileManager'
 import Monitor from './pages/Monitor'
+import Security from './pages/Security'
+import Settings from './pages/Settings'
 import Layout from './components/Layout'
 import { useAuthStore } from './store/useAuthStore'
 
@@ -31,6 +33,8 @@ export default function App() {
           <Route path="/terminal" element={<Terminal />} />
           <Route path="/files" element={<FileManager />} />
           <Route path="/monitor" element={<Monitor />} />
+          <Route path="/security" element={<Security />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Route>
       </Routes>
