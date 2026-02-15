@@ -67,14 +67,14 @@ export default function SSHConnection() {
     // Determine the backend host (similar to api.js logic)
     let backendHost;
     if (window.location.hostname === 'localhost') {
-        backendHost = 'localhost:8000';
+      backendHost = 'localhost:8000';
     } else {
-        // Production: use same host:port as the frontend (Nginx will proxy /ws/ to backend)
-        backendHost = window.location.host
+      // Production: use same host:port as the frontend (Nginx will proxy /ws/ to backend)
+      backendHost = window.location.host
     }
 
-    const wsUrl = `${protocol}//${backendHost}/ws/ssh/${currentServer.id}`
-    
+    const wsUrl = `${protocol}//${backendHost}/api/ws/ssh/${currentServer.id}`
+
     // Auth token in URL or protocol is tricky with standard WebSocket in browser if headers not supported
     // Usually we pass token as a query param or strict cookie.
     // Let's assume the backend accepts ?token=...
@@ -84,7 +84,7 @@ export default function SSHConnection() {
     ws.onopen = () => {
       setIsConnected(true)
       term.writeln('\r\n\x1b[32mConnected to ' + currentServer.name + '\x1b[0m\r\n')
-      
+
       // Send initial resize
       const dims = { cols: term.cols, rows: term.rows }
       ws.send(JSON.stringify({ type: 'resize', ...dims }))
@@ -94,14 +94,14 @@ export default function SSHConnection() {
       try {
         const msg = JSON.parse(event.data)
         if (msg.type === 'output' || msg.type === 'connected') {
-            term.write(msg.data)
+          term.write(msg.data)
         } else if (msg.type === 'error') {
-            term.writeln(`\r\n\x1b[31mError: ${msg.data}\x1b[0m\r\n`)
+          term.writeln(`\r\n\x1b[31mError: ${msg.data}\x1b[0m\r\n`)
         }
       } catch (e) {
-          // If not JSON, maybe just write it? Or ignore?
-          // term.write(event.data)
-          console.error("Failed to parse websocket message", event.data)
+        // If not JSON, maybe just write it? Or ignore?
+        // term.write(event.data)
+        console.error("Failed to parse websocket message", event.data)
       }
     }
 
@@ -146,7 +146,7 @@ export default function SSHConnection() {
         <h2 className="text-xl font-semibold">未选择服务器</h2>
         <p className="text-muted-foreground">请在左侧菜单或服务器列表中选择一台服务器以连接 SSH。</p>
         <Button variant="outline" asChild>
-           <a href="/servers">去选择服务器</a>
+          <a href="/servers">去选择服务器</a>
         </Button>
       </div>
     )
@@ -154,25 +154,25 @@ export default function SSHConnection() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] space-y-4">
-       <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <TerminalIcon className="w-5 h-5"/> {currentServer.name} ({currentServer.host})
-            </h2>
-            <span className={cn("text-xs px-2 py-0.5 rounded-full", isConnected ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
-               {isConnected ? '已连接' : '已断开'}
-            </span>
-          </div>
-          {!isConnected && (
-            <Button size="sm" onClick={handleReconnect} variant="outline">
-              重连
-            </Button>
-          )}
-       </div>
-       
-       <div className="flex-1 rounded-lg border bg-black p-1 overflow-hidden relative shadow-inner">
-          <div ref={terminalRef} className="h-full w-full" />
-       </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <TerminalIcon className="w-5 h-5" /> {currentServer.name} ({currentServer.host})
+          </h2>
+          <span className={cn("text-xs px-2 py-0.5 rounded-full", isConnected ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
+            {isConnected ? '已连接' : '已断开'}
+          </span>
+        </div>
+        {!isConnected && (
+          <Button size="sm" onClick={handleReconnect} variant="outline">
+            重连
+          </Button>
+        )}
+      </div>
+
+      <div className="flex-1 rounded-lg border bg-black p-1 overflow-hidden relative shadow-inner">
+        <div ref={terminalRef} className="h-full w-full" />
+      </div>
     </div>
   )
 }
