@@ -54,7 +54,14 @@ ip -4 addr show 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127
 echo "===NETWORK_STATS==="
 cat /proc/net/dev | grep -v 'lo' | awk 'NR>2 {sum_in+=$2; sum_out+=$10} END {print sum_in, sum_out}'
 echo "===IO_STATS==="
-vmstat 1 2 | tail -1 | awk '{print $15, $16}'
+# 使用 /proc/diskstats 计算精确的 IO 读写
+# 1. 第一次读取
+cat /proc/diskstats > /tmp/diskstats_1
+sleep 1
+# 2. 第二次读取
+cat /proc/diskstats > /tmp/diskstats_2
+# 3. 计算所有磁盘增量 (字段6: read sectors, 字段10: write sectors) 通常扇区是512字节
+awk 'FNR==NR{r[$3]=$6; w[$3]=$10; next} {if ($3 in r) {rd+=$6-r[$3]; wd+=$10-w[$3]}} END {print rd*512, wd*512}' /tmp/diskstats_1 /tmp/diskstats_2
 echo "===BOOT_TIME==="
 who -b 2>/dev/null | awk '{print $3, $4}'
 """
