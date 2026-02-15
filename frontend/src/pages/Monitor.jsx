@@ -20,34 +20,60 @@ const Monitor = () => {
         if (!currentServer) return
         
         const maxPoints = duration === '1h' ? 60 : duration === '6h' ? 120 : 144
+        const token = localStorage.getItem('token')
+        if (!token) return
 
-        const fetchStats = async () => {
+        // 构建 WebSocket URL
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        const wsUrl = `${protocol}//${window.location.hostname}:8000/api/ws/monitor/${currentServer.id}?token=${token}`
+
+        // 创建 WebSocket 连接
+        const ws = new WebSocket(wsUrl)
+
+        ws.onopen = () => {
+            console.log('Monitor WebSocket 连接已建立')
+        }
+
+        ws.onmessage = (event) => {
             try {
-                const res = await api.get(`/api/system/${currentServer.id}/info`)
-                const cpu = res.data.cpu_usage || 0
-                const memory = res.data.memory_usage || 0
+                const message = JSON.parse(event.data)
                 
-                setCurrentStats({ cpu, memory })
-                
-                const time = dayjs().format('HH:mm:ss')
-                
-                setMetrics(prev => {
-                    const newCpu = [...prev.cpu, { name: time, value: [time, cpu] }].slice(-maxPoints)
-                    const newMem = [...prev.memory, { name: time, value: [time, memory] }].slice(-maxPoints)
-                    return { cpu: newCpu, memory: newMem }
-                })
+                if (message.type === 'monitor_data') {
+                    const data = message.data
+                    const cpu = data.cpu_usage || 0
+                    const memory = data.memory_usage || 0
+                    
+                    setCurrentStats({ cpu, memory })
+                    
+                    const time = dayjs().format('HH:mm:ss')
+                    
+                    setMetrics(prev => {
+                        const newCpu = [...prev.cpu, { name: time, value: [time, cpu] }].slice(-maxPoints)
+                        const newMem = [...prev.memory, { name: time, value: [time, memory] }].slice(-maxPoints)
+                        return { cpu: newCpu, memory: newMem }
+                    })
+                } else if (message.type === 'error') {
+                    console.error('WebSocket 错误:', message.message)
+                }
             } catch (err) {
-                console.error("Failed to fetch system stats", err)
+                console.error('解析 WebSocket 消息失败', err)
             }
         }
 
-        // Fetch immediately
-        fetchStats()
-        
-        // Then refresh every 3 seconds
-        const interval = setInterval(fetchStats, 3000)
-        
-        return () => clearInterval(interval)
+        ws.onerror = (error) => {
+            console.error('WebSocket 错误:', error)
+        }
+
+        ws.onclose = () => {
+            console.log('Monitor WebSocket 连接已关闭')
+        }
+
+        // 清理函数
+        return () => {
+            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                ws.close()
+            }
+        }
     }, [currentServer, duration])
 
     const getLineOption = (title, data, color, yAxisMax = 100) => ({

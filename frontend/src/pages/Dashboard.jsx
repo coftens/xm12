@@ -27,82 +27,115 @@ export default function Dashboard() {
   const { currentServer, serverMetrics, setServerMetrics } = useServerStore()
   const [netSpeed, setNetSpeed] = useState({ upload: 0, download: 0 })
   const [lastNetData, setLastNetData] = useState({ bytes_sent: 0, bytes_recv: 0, timestamp: 0 })
+  const wsRef = React.useRef(null)
   
   // Use cached metrics if available, otherwise default to initialUsage
   const systemInfo = (currentServer && serverMetrics[currentServer.id]) 
     ? serverMetrics[currentServer.id] 
     : initialUsage
 
-  // Fetch system info periodically
+  // WebSocket 连接用于实时监控数据
   useEffect(() => {
     if (!currentServer) return
 
-    const fetchData = async () => {
-      try {
-        const res = await api.get(`/api/system/${currentServer.id}/info`)
-        const data = res.data
-        
-        // Calculate network speed (bytes per second)
-        const now = Date.now()
-        const currentSent = data.net_io?.bytes_sent || 0
-        const currentRecv = data.net_io?.bytes_recv || 0
-        
-        if (lastNetData.timestamp > 0) {
-          const timeDiff = (now - lastNetData.timestamp) / 1000 // seconds
-          const uploadSpeed = (currentSent - lastNetData.bytes_sent) / timeDiff
-          const downloadSpeed = (currentRecv - lastNetData.bytes_recv) / timeDiff
-          
-          setNetSpeed({
-            upload: uploadSpeed > 0 ? uploadSpeed : 0,
-            download: downloadSpeed > 0 ? downloadSpeed : 0
-          })
-        }
-        
-        setLastNetData({
-          bytes_sent: currentSent,
-          bytes_recv: currentRecv,
-          timestamp: now
-        })
-        
-        // Adapt backend flat structure to frontend nested structure
-        const adaptedData = {
-          cpu_percent: data.cpu_usage || 0,
-          cpu_count: data.cpu_cores || 0,
-          memory: { 
-            percent: data.memory_usage || 0, 
-            used: data.memory_used || 0, 
-            total: data.memory_total || 0 
-          },
-          disk: { 
-            percent: data.disk_usage || 0, 
-            used: data.disk_used || 0, 
-            total: data.disk_total || 0 
-          },
-          net_io: { 
-            bytes_sent: currentSent, 
-            bytes_recv: currentRecv
-          },
-          load: {
-            load_1: data.load_1 || 0,
-            load_5: data.load_5 || 0,
-            load_15: data.load_15 || 0
-          },
-          uptime: data.uptime || 0
-        }
+    // 获取 token
+    const token = localStorage.getItem('token')
+    if (!token) return
 
-        setServerMetrics(currentServer.id, adaptedData)
+    // 构建 WebSocket URL
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${protocol}//${window.location.hostname}:8000/api/ws/monitor/${currentServer.id}?token=${token}`
+
+    // 创建 WebSocket 连接
+    const ws = new WebSocket(wsUrl)
+    wsRef.current = ws
+
+    ws.onopen = () => {
+      console.log('WebSocket 监控连接已建立')
+    }
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data)
+        
+        if (message.type === 'monitor_data') {
+          const data = message.data
+          
+          // Calculate network speed (bytes per second)
+          const now = Date.now()
+          const currentSent = data.net_io?.bytes_sent || 0
+          const currentRecv = data.net_io?.bytes_recv || 0
+          
+          if (lastNetData.timestamp > 0) {
+            const timeDiff = (now - lastNetData.timestamp) / 1000 // seconds
+            const uploadSpeed = (currentSent - lastNetData.bytes_sent) / timeDiff
+            const downloadSpeed = (currentRecv - lastNetData.bytes_recv) / timeDiff
+            
+            setNetSpeed({
+              upload: uploadSpeed > 0 ? uploadSpeed : 0,
+              download: downloadSpeed > 0 ? downloadSpeed : 0
+            })
+          }
+          
+          setLastNetData({
+            bytes_sent: currentSent,
+            bytes_recv: currentRecv,
+            timestamp: now
+          })
+          
+          // Adapt backend flat structure to frontend nested structure
+          const adaptedData = {
+            cpu_percent: data.cpu_usage || 0,
+            cpu_count: data.cpu_cores || 0,
+            memory: { 
+              percent: data.memory_usage || 0, 
+              used: data.memory_used || 0, 
+              total: data.memory_total || 0 
+            },
+            disk: { 
+              percent: data.disk_usage || 0, 
+              used: data.disk_used || 0, 
+              total: data.disk_total || 0 
+            },
+            net_io: { 
+              bytes_sent: currentSent, 
+              bytes_recv: currentRecv
+            },
+            load: {
+              load_1: data.load_1 || 0,
+              load_5: data.load_5 || 0,
+              load_15: data.load_15 || 0
+            },
+            uptime: data.uptime || 0
+          }
+
+          setServerMetrics(currentServer.id, adaptedData)
+        } else if (message.type === 'error') {
+          console.error('WebSocket 错误:', message.message)
+        }
       } catch (err) {
-        console.error("Failed to fetch system info", err)
+        console.error('解析 WebSocket 消息失败', err)
       }
     }
-    
-    // Reset network data when switching servers
+
+    ws.onerror = (error) => {
+      console.error('WebSocket 错误:', error)
+    }
+
+    ws.onclose = () => {
+      console.log('WebSocket 连接已关闭')
+    }
+
+    // 重置网络数据
     setLastNetData({ bytes_sent: 0, bytes_recv: 0, timestamp: 0 })
     setNetSpeed({ upload: 0, download: 0 })
-    
-    fetchData()
-    const interval = setInterval(fetchData, 5000)
-    return () => clearInterval(interval)
+
+    // 清理函数
+    return () => {
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close()
+      }
+    }
   }, [currentServer, setServerMetrics])
 
   if (!currentServer) {
