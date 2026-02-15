@@ -19,18 +19,16 @@ export default function Login() {
     setError('')
 
     try {
-      // Create form data as backend expects form-data for OAuth2 usually, 
-      // but let's check the Vue implementation to be sure.
-      // Vue used: api.post('/api/token', formData) with username/password.
+      // FastAPI backend expects JSON with username/password
+      const res = await api.post('/api/auth/login', {
+        username,
+        password
+      })
       
-      const formData = new FormData()
-      formData.append('username', username)
-      formData.append('password', password)
-
-      const res = await api.post('/api/token', formData)
-      const { access_token, user } = res.data
+      const { access_token } = res.data
       
-      setAuth(user, access_token)
+      // Store token and user info
+      setAuth({ username }, access_token)
       navigate('/dashboard')
     } catch (err) {
       console.error(err)
