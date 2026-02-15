@@ -222,7 +222,7 @@ export default function Dashboard() {
                    <Clock className="w-3 h-3 mr-1"/>
                    运行时间
                 </div>
-                <span>{Math.floor(systemInfo.uptime / 3600)} 小时</span>
+                <span>{typeof systemInfo.uptime === 'number' ? `${Math.floor(systemInfo.uptime / 3600)} 小时` : systemInfo.uptime}</span>
              </div>
           </CardContent>
         </Card>
