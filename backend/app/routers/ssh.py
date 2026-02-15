@@ -107,7 +107,11 @@ async def ssh_terminal(websocket: WebSocket, server_id: int):
             finally:
                 await websocket.close()
 
-        read_task = asyncio.create_task(read_ssh())
+        #兼容 Python 3.6
+        if hasattr(asyncio, "create_task"):
+            read_task = asyncio.create_task(read_ssh())
+        else:
+            read_task = asyncio.ensure_future(read_ssh())
 
         # 从 WebSocket 读取数据并发送到 SSH
         try:
