@@ -18,6 +18,8 @@ class MonitorService:
             commands = """
 echo "===CPU==="
 top -bn1 | grep "Cpu(s)" | awk '{print $2}'
+echo "===CPU_COUNT==="
+grep -c ^processor /proc/cpuinfo
 echo "===MEMORY==="
 free -m | grep Mem
 echo "===DISK==="
@@ -26,6 +28,8 @@ echo "===LOAD==="
 cat /proc/loadavg
 echo "===NETWORK==="
 cat /proc/net/dev | grep -E "eth0|ens|eno|enp"
+echo "===UPTIME==="
+cat /proc/uptime
 """
             stdout, stderr = self.ssh_service.execute_command(server, commands, timeout=15)
             return self._parse_output(stdout)
@@ -37,6 +41,7 @@ cat /proc/net/dev | grep -E "eth0|ens|eno|enp"
         """解析命令输出"""
         data = {
             "cpu_usage": 0,
+            "cpu_count": 0,
             "memory_total": 0,
             "memory_used": 0,
             "memory_usage": 0,
@@ -48,6 +53,7 @@ cat /proc/net/dev | grep -E "eth0|ens|eno|enp"
             "load_1": 0,
             "load_5": 0,
             "load_15": 0,
+            "uptime": 0
         }
 
         sections = output.split("===")
@@ -59,6 +65,13 @@ cat /proc/net/dev | grep -E "eth0|ens|eno|enp"
                 try:
                     cpu_str = sections[i + 1].strip().split('\n')[0]
                     data["cpu_usage"] = round(float(cpu_str), 1)
+                except (ValueError, IndexError):
+                    pass
+
+            elif section == "CPU_COUNT" and i + 1 < len(sections):
+                try:
+                    count_str = sections[i + 1].strip().split('\n')[0]
+                    data["cpu_count"] = int(count_str)
                 except (ValueError, IndexError):
                     pass
 
@@ -104,6 +117,13 @@ cat /proc/net/dev | grep -E "eth0|ens|eno|enp"
                 except (ValueError, IndexError):
                     pass
 
+            elif section == "UPTIME" and i + 1 < len(sections):
+                try:
+                    uptime_str = sections[i + 1].strip().split()[0]
+                    data["uptime"] = float(uptime_str)
+                except (ValueError, IndexError):
+                    pass
+
         return data
 
     def get_realtime(self, server: Server) -> Optional[Dict]:
@@ -113,15 +133,18 @@ cat /proc/net/dev | grep -E "eth0|ens|eno|enp"
                 "echo $(grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}');"
                 "free -m | awk '/Mem/{print $2,$3}';"
                 "df -BG --total | awk '/total/{print $2,$3}';"
-                "cat /proc/loadavg | awk '{print $1,$2,$3}'"
+                "cat /proc/loadavg | awk '{print $1,$2,$3}';"
+                "cat /proc/uptime | awk '{print $1}';"
+                "grep -c ^processor /proc/cpuinfo"
             )
             stdout, _ = self.ssh_service.execute_command(server, cmd, timeout=10)
             lines = stdout.strip().split('\n')
 
             data = {
-                "cpu_usage": 0, "memory_total": 0, "memory_used": 0, "memory_usage": 0,
+                "cpu_usage": 0, "cpu_count": 0, "memory_total": 0, "memory_used": 0, "memory_usage": 0,
                 "disk_total": 0, "disk_used": 0, "disk_usage": 0,
                 "net_in": 0, "net_out": 0, "load_1": 0, "load_5": 0, "load_15": 0,
+                "uptime": 0
             }
 
             if len(lines) >= 1:
@@ -152,6 +175,16 @@ cat /proc/net/dev | grep -E "eth0|ens|eno|enp"
                     data["load_5"] = float(parts[1])
                     data["load_15"] = float(parts[2])
                 except (ValueError, IndexError):
+                    pass
+            if len(lines) >= 5:
+                try:
+                    data["uptime"] = float(lines[4].strip())
+                except ValueError:
+                    pass
+            if len(lines) >= 6:
+                try:
+                    data["cpu_count"] = int(lines[5].strip())
+                except ValueError:
                     pass
 
             return data

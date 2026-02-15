@@ -206,9 +206,9 @@ const ServerMonitorCard = ({ server }) => {
 
         <div className="grid grid-cols-4 gap-2">
           {/* Load - Key Metric */}
-          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-slate-50 border border-slate-100 col-span-1">
+          <div className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-100/10 col-span-1">
             <CircularProgress
-              value={Math.min((systemInfo.load?.load_1 || 0) * 100 / 4, 100)}
+              value={Math.min((systemInfo.load?.load_1 || 0) * 100 / (systemInfo.cpu_count || 1), 100)}
               color={loadStatus.color}
               size={60}
               strokeWidth={6}
@@ -229,7 +229,7 @@ const ServerMonitorCard = ({ server }) => {
               strokeWidth={7}
               label="CPU"
             />
-            <span className="text-[10px] text-muted-foreground mt-1">{systemInfo.cpu_count} 核</span>
+            <span className="text-[10px] text-muted-foreground mt-1">{systemInfo.cpu_count} 核心</span>
           </div>
 
           {/* Memory */}
@@ -241,8 +241,8 @@ const ServerMonitorCard = ({ server }) => {
               strokeWidth={7}
               label="内存"
             />
-            <span className="text-[10px] text-muted-foreground mt-1 truncate max-w-full" title={formatBytes(systemInfo.memory_used_bytes)}>
-              {formatBytes(systemInfo.memory_used_bytes)}
+            <span className="text-[10px] text-muted-foreground mt-1 truncate max-w-full" title={`${formatBytes(systemInfo.memory_used_bytes)} / ${formatBytes(systemInfo.memory_total_bytes)}`}>
+              {formatBytes(systemInfo.memory_used_bytes)} / {formatBytes(systemInfo.memory_total_bytes)}
             </span>
           </div>
 
@@ -255,8 +255,8 @@ const ServerMonitorCard = ({ server }) => {
               strokeWidth={7}
               label="磁盘"
             />
-            <span className="text-[10px] text-muted-foreground mt-1 truncate max-w-full">
-              {formatBytes(systemInfo.disk_used_bytes)}
+            <span className="text-[10px] text-muted-foreground mt-1 truncate max-w-full" title={`${formatBytes(systemInfo.disk_used_bytes)} / ${formatBytes(systemInfo.disk_total_bytes)}`}>
+              {formatBytes(systemInfo.disk_used_bytes)} / {formatBytes(systemInfo.disk_total_bytes)}
             </span>
           </div>
         </div>
@@ -275,7 +275,7 @@ const ServerMonitorCard = ({ server }) => {
           </div>
           <div className="flex items-center gap-1 truncate" title="系统运行时间">
             <Clock className="w-3 h-3" />
-            <span>{typeof systemInfo.uptime === 'number' ? `${Math.floor(systemInfo.uptime / 86400)}天` : '-'}</span>
+            <span>{typeof systemInfo.uptime === 'number' ? `${Math.floor(systemInfo.uptime / 86400)}天 ` : ''}</span>
           </div>
         </div>
       </CardContent>
