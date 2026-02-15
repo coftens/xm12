@@ -19,7 +19,10 @@ class SSHService:
             "hostname": server.host,
             "port": server.port,
             "username": server.username,
-            "timeout": 10,
+            "timeout": 20,
+            "look_for_keys": False,
+            "allow_agent": False,
+            "banner_timeout": 60,
         }
 
         if server.auth_type == "password":
