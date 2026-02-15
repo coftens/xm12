@@ -9,6 +9,27 @@ import {
 import api from '@/api'
 import { cn } from '@/lib/utils'
 
+const Dialog = ({ open, title, description, onConfirm, onCancel, confirmText = "确认", cancelText = "取消" }) => {
+    if (!open) return null
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in duration-200">
+            <div className="bg-popover text-popover-foreground border rounded-lg shadow-lg max-w-md w-full p-6 space-y-4">
+                <div className="space-y-2">
+                    <h3 className="font-semibold leading-none tracking-tight">{title}</h3>
+                    <div className="text-sm text-muted-foreground">{description}</div>
+                </div>
+                <div className="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={onCancel}>{cancelText}</Button>
+                    <Button size="sm" onClick={onConfirm}>{confirmText}</Button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// Internal Helper Component for Icon
+const FolderWrapper = ({ className }) => <Folder className={cn(className, "fill-yellow-300 text-yellow-400")} />
+
 export default function FileManager() {
   const currentServer = useServerStore(state => state.currentServer)
   const [currentPath, setCurrentPath] = useState('/')
@@ -17,7 +38,9 @@ export default function FileManager() {
   const [selectedFiles, setSelectedFiles] = useState([]) // Array of file objects
   const [uploading, setUploading] = useState(false)
   const [isDragActive, setIsDragActive] = useState(false)
+  const [uploadConfirmation, setUploadConfirmation] = useState({ open: false, files: [] })
   const fileInputRef = React.useRef(null)
+  const dragCounter = React.useRef(0)
 
   // Fetch file list
   const fetchFiles = useCallback(async (path) => {
@@ -58,30 +81,43 @@ export default function FileManager() {
   const handleDragEnter = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsDragActive(true)
+    dragCounter.current++
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragActive(true)
+    }
   }
 
   const handleDragLeave = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsDragActive(false)
+    dragCounter.current--
+    if (dragCounter.current <= 0) {
+      setIsDragActive(false)
+      dragCounter.current = 0
+    }
   }
 
   const handleDragOver = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!isDragActive) setIsDragActive(true)
   }
 
   const handleDrop = (e) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragActive(false)
+    dragCounter.current = 0
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        handleUploadValid(e.dataTransfer.files)
-        e.dataTransfer.clearData()
+        const fileList = Array.from(e.dataTransfer.files)
+        setUploadConfirmation({ open: true, files: fileList })
     }
+  }
+
+  const confirmUpload = async () => {
+    const fileList = uploadConfirmation.files
+    setUploadConfirmation({ open: false, files: [] })
+    await handleUploadValid(fileList)
   }
 
   const handleUploadValid = async (fileList) => {
@@ -170,8 +206,9 @@ export default function FileManager() {
 
   const handleUpload = async (event) => {
     if (!currentServer || !event.target.files.length) return
-    const fileList = event.target.files
-    await handleUploadValid(fileList)
+    const fileList = Array.from(event.target.files)
+    setUploadConfirmation({ open: true, files: fileList })
+    event.target.value = ''
   }
 
   // UI Helpers
@@ -410,4 +447,4 @@ export default function FileManager() {
 }
 
 // Internal Helper Component for Icon
-const FolderWrapper = ({ className }) => <Folder className={className} />
+// Removed duplicate FolderWrapper definition at bottom of file
