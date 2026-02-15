@@ -52,9 +52,9 @@ export default function Dashboard() {
             total: data.disk_total || 0 
           },
           net_io: { 
-            // Backend currently doesn't provide real-time traffic in this endpoint
-            bytes_sent: 0, 
-            bytes_recv: 0 
+            // If backend provides real data use it, otherwise fallback to 0
+            bytes_sent: data.net_io?.bytes_sent || 0, 
+            bytes_recv: data.net_io?.bytes_recv || 0
           },
           uptime: data.uptime || 0
         })
@@ -64,7 +64,7 @@ export default function Dashboard() {
     }
     
     fetchData()
-    const interval = setInterval(fetchData, 3000)
+    const interval = setInterval(fetchData, 5000)
     return () => clearInterval(interval)
   }, [currentServer])
 

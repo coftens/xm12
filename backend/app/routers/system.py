@@ -51,6 +51,8 @@ echo "===CPU_USAGE==="
 grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}'
 echo "===NETWORK_IPS==="
 ip -4 addr show 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1'
+echo "===NETWORK_STATS==="
+cat /proc/net/dev | grep -v 'lo' | awk 'NR>2 {sum_in+=$2; sum_out+=$10} END {print sum_in, sum_out}'
 echo "===BOOT_TIME==="
 who -b 2>/dev/null | awk '{print $3, $4}'
 """
@@ -95,6 +97,7 @@ def _parse_system_info(output: str) -> dict:
         "load_5": 0,
         "load_15": 0,
         "cpu_usage": 0,
+        "net_io": {"bytes_sent": 0, "bytes_recv": 0},
         "ips": [],
         "boot_time": "",
     }
@@ -180,6 +183,16 @@ def _parse_system_info(output: str) -> dict:
         elif section == "CPU_USAGE":
             try:
                 info["cpu_usage"] = round(float(val), 1)
+            except ValueError:
+                pass
+        elif section == "NETWORK_STATS":
+            try:
+                parts = val.split()
+                if len(parts) >= 2:
+                    info["net_io"] = {
+                        "bytes_recv": int(float(parts[0])),
+                        "bytes_sent": int(float(parts[1]))
+                    }
             except ValueError:
                 pass
         elif section == "NETWORK_IPS":
