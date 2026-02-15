@@ -14,8 +14,9 @@ export default function FileManager() {
   const [currentPath, setCurrentPath] = useState('/')
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
-  const [selectedFiles, setSelectedFiles] = useState([])
+  const [selectedFiles, setSelectedFiles] = useState([]) // Array of file objects
   const [uploading, setUploading] = useState(false)
+  const [isDragActive, setIsDragActive] = useState(false)
   const fileInputRef = React.useRef(null)
 
   // Fetch file list
@@ -49,13 +50,73 @@ export default function FileManager() {
 
   useEffect(() => {
     if (currentServer) {
-      fetchFiles('/')
+        fetchFiles('/')
     }
   }, [currentServer, fetchFiles])
 
-  // Navigation handlers
-  const handleNavigate = (path) => {
-    fetchFiles(path)
+  // Drag and Drop Handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isDragActive) setIsDragActive(true)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleUploadValid(e.dataTransfer.files)
+        e.dataTransfer.clearData()
+    }
+  }
+
+  const handleUploadValid = async (fileList) => {
+    if (!currentServer || !fileList.length) return
+    
+    setUploading(true)
+    let uploadCount = 0
+    
+    try {
+        // Upload files sequentially or in parallel (sequentially for now to avoid overloading backend connection)
+        for (let i = 0; i < fileList.length; i++) {
+            const file = fileList[i]
+            const formData = new FormData()
+            formData.append('file', file)
+            // Path checks depending on API requirements
+            
+            await api.post(`/api/files/${currentServer.id}/upload`, formData, {
+                params: { path: currentPath },
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            uploadCount++
+        }
+        
+        if (uploadCount > 0) {
+            fetchFiles(currentPath)
+            // Ideally show a toast notification here
+            // alert(`成功上传 ${uploadCount} 个文件`)
+        }
+    } catch (err) {
+        console.error("Upload failed", err)
+        alert("上传失败: " + (err.response?.data?.detail || err.message))
+    } finally {
+        setUploading(false)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const handleGoUp = () => {
@@ -109,27 +170,8 @@ export default function FileManager() {
 
   const handleUpload = async (event) => {
     if (!currentServer || !event.target.files.length) return
-    const file = event.target.files[0]
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('path', currentPath) // Check if backend supports path in body or query
-
-    setUploading(true)
-    try {
-      // POST /api/files/:id/upload
-      await api.post(`/api/files/${currentServer.id}/upload`, formData, {
-        params: { path: currentPath }, // Pass path as query param if backend expects it
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      fetchFiles(currentPath)
-      alert("上传成功")
-    } catch (err) {
-      console.error("Upload failed", err)
-      alert("上传失败")
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
+    const fileList = event.target.files
+    await handleUploadValid(fileList)
   }
 
   // UI Helpers
@@ -168,34 +210,76 @@ export default function FileManager() {
   }
 
   return (
-    <div className="space-y-4 h-[calc(100vh-100px)] flex flex-col">
+    <div 
+      className="space-y-4 h-[calc(100vh-100px)] flex flex-col relative"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag Overlay */}
+      {isDragActive && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm border-2 border-dashed border-primary m-2 rounded-xl animate-in fade-in zoom-in duration-200 pointer-events-none">
+            <div className="bg-primary/10 p-8 rounded-full mb-6 ring-8 ring-primary/5">
+                <Upload className="w-20 h-20 text-primary animate-bounce" />
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">请将需要上传的文件/文件夹拖到此处</h2>
+            <p className="text-muted-foreground mt-2 text-lg">松开鼠标即可开始上传</p>
+        </div>
+      )}
+
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4 bg-card p-2 rounded-lg border shadow-sm">
+      <div className="flex items-center justify-between gap-4 bg-card p-2 rounded-lg border shadow-sm shrink-0">
          <div className="flex items-center gap-2 flex-1 overflow-hidden">
              <Button variant="ghost" size="icon" onClick={handleGoUp} disabled={currentPath === '/'}>
                  <ArrowLeft className="w-4 h-4" />
              </Button>
-             <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded text-sm w-full font-mono overflow-x-auto whitespace-nowrap">
-                 <span className="text-muted-foreground">Path:</span>
-                 {currentPath}
+             
+             {/* Simple Breadcrumb */}
+             <div className="flex items-center gap-1 px-2 py-1 bg-muted/50 rounded text-sm w-full font-mono overflow-x-auto whitespace-nowrap scrollbar-hide">
+                 <span className="text-muted-foreground mr-1">Path:</span>
+                 <span 
+                    className={cn("hover:underline cursor-pointer px-1 rounded hover:bg-background", currentPath === '/' && "font-bold")}
+                    onClick={() => handleNavigate('/')}
+                 >
+                    /
+                 </span>
+                 {currentPath !== '/' && currentPath.split('/').filter(Boolean).map((part, index, arr) => {
+                     const path = '/' + arr.slice(0, index + 1).join('/')
+                     return (
+                         <React.Fragment key={path}>
+                             <span className="text-muted-foreground">/</span>
+                             <span 
+                                className="hover:underline cursor-pointer px-1 rounded hover:bg-background hover:text-primary transition-colors"
+                                onClick={() => handleNavigate(path)}
+                             >
+                                {part}
+                             </span>
+                         </React.Fragment>
+                     )
+                 })}
              </div>
-             <Button variant="ghost" size="icon" onClick={() => fetchFiles(currentPath)}>
+
+             <Button variant="ghost" size="icon" onClick={() => fetchFiles(currentPath)} title="刷新">
                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
              </Button>
          </div>
+         
          <div className="flex items-center gap-2">
              <input 
                 type="file" 
                 ref={fileInputRef} 
                 className="hidden" 
                 onChange={handleUpload} 
+                multiple
              />
-             <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+             <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                  <Upload className="w-4 h-4 mr-2" />
-                 {uploading ? '上传中...' : '上传'}
+                 {uploading ? '上传中...' : '上传文件'}
              </Button>
-             <Button size="sm" variant="ghost" onClick={() => alert("Todo: Create Folder")}>
-                 <FolderPlus className="w-4 h-4" />
+             <Button size="sm" variant="outline" onClick={() => window.prompt("请输入新文件夹名称") && alert("Todo: Create Folder")}>
+                 <FolderPlus className="w-4 h-4 mr-2" />
+                 新建
              </Button>
              {selectedFiles.length > 0 && (
                 <Button size="sm" variant="destructive" onClick={handleDelete}>
@@ -206,39 +290,49 @@ export default function FileManager() {
          </div>
       </div>
 
-      {/* File List */}
-      <div className="flex-1 rounded-lg border bg-card overflow-hidden flex flex-col">
-        <div className="overflow-auto flex-1">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-muted/50 sticky top-0 z-10 text-xs uppercase text-muted-foreground font-medium">
+      {/* File List Table */}
+      <div className="flex-1 rounded-lg border bg-card overflow-hidden flex flex-col shadow-sm">
+        <div className="overflow-auto flex-1 relative">
+          <table className="w-full text-sm text-left border-collapse">
+            <thead className="bg-muted/50 sticky top-0 z-10 text-xs uppercase text-muted-foreground font-medium backdrop-blur-sm">
                <tr>
-                   <th className="w-10 p-3 text-center">
+                   <th className="w-12 p-3 text-center border-b">
                        <input 
                           type="checkbox" 
-                          checked={selectedFiles.length === files.length && files.length > 0}
+                          checked={files.length > 0 && selectedFiles.length === files.length}
                           onChange={(e) => {
                               if (e.target.checked) setSelectedFiles(files.map(f => f.name))
                               else setSelectedFiles([])
                           }}
-                          className="rounded border-gray-300"
+                          className="rounded border-input bg-background w-4 h-4 accent-primary"
                        />
                    </th>
-                   <th className="p-3">文件名</th>
-                   <th className="p-3 w-24 text-right">大小</th>
-                   <th className="p-3 w-40 text-center">权限</th>
-                   <th className="p-3 w-40 text-center">所有者</th>
-                   <th className="p-3 w-48 text-right">修改时间</th>
-                   <th className="p-3 w-32 text-center">操作</th>
+                   <th className="p-3 border-b">文件名</th>
+                   <th className="p-3 w-32 border-b text-right">大小</th>
+                   <th className="p-3 w-32 text-center border-b">权限</th>
+                   <th className="p-3 w-32 text-center border-b">所有者</th>
+                   <th className="p-3 w-40 text-right border-b">修改时间</th>
+                   <th className="p-3 w-32 text-center border-b bg-muted/50 sticky right-0 shadow-[-10px_0_10px_-10px_rgba(0,0,0,0.1)]">操作</th>
                </tr>
             </thead>
             <tbody className="divide-y divide-border">
                {files.length === 0 && !loading && (
-                   <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">此目录下没有文件</td></tr>
+                   <tr>
+                       <td colSpan={7} className="p-12 text-center text-muted-foreground">
+                           <div className="flex flex-col items-center gap-2">
+                               <Folder className="w-10 h-10 opacity-20" />
+                               <span>此目录下没有文件</span>
+                           </div>
+                       </td>
+                   </tr>
                )}
                {files.map((file) => (
                    <tr 
                       key={file.name} 
-                      className={cn("hover:bg-muted/50 transition-colors group", selectedFiles.includes(file.name) && "bg-muted")}
+                      className={cn(
+                          "hover:bg-muted/50 transition-colors group", 
+                          selectedFiles.includes(file.name) && "bg-primary/5"
+                      )}
                    >
                        <td className="p-3 text-center">
                            <input 
@@ -248,37 +342,54 @@ export default function FileManager() {
                                   if (e.target.checked) setSelectedFiles(prev => [...prev, file.name])
                                   else setSelectedFiles(prev => prev.filter(n => n !== file.name))
                               }}
-                              className="rounded border-gray-300"
+                              className="rounded border-input bg-background w-4 h-4 accent-primary"
                            />
                        </td>
                        <td className="p-3">
                            <div 
-                              className="flex items-center gap-2 cursor-pointer select-none"
+                              className="flex items-center gap-3 cursor-pointer select-none group/name"
                               onClick={() => {
                                   if (file.is_dir) handleNavigate(`${currentPath === '/' ? '' : currentPath}/${file.name}`)
                               }}
                            >
-                               {getFileIcon(file)}
-                               <span className={cn(file.is_dir && "font-medium text-foreground", !file.is_dir && "text-muted-foreground")}>
+                               <div className="text-muted-foreground group-hover/name:text-primary transition-colors">
+                                  {getFileIcon(file)}
+                               </div>
+                               <span className={cn(
+                                   "truncate max-w-[300px] lg:max-w-[400px]",
+                                   file.is_dir && "font-medium text-foreground group-hover/name:text-primary underline-offset-4 group-hover/name:underline", 
+                                   !file.is_dir && "text-muted-foreground group-hover/name:text-foreground"
+                               )}>
                                    {file.name}
                                </span>
                            </div>
                        </td>
-                       <td className="p-3 text-right text-muted-foreground font-mono text-xs">
+                       <td className="p-3 text-right text-muted-foreground font-mono text-xs whitespace-nowrap">
                            {file.is_dir ? '-' : formatSize(file.size)}
                        </td>
-                       <td className="p-3 text-center text-xs font-mono text-muted-foreground">{file.permissions}</td>
-                       <td className="p-3 text-center text-xs text-muted-foreground">{file.owner}:{file.group}</td>
-                       <td className="p-3 text-right text-xs text-muted-foreground tabular-nums">{formatDate(file.mtime)}</td>
-                       <td className="p-3 text-center">
-                           <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <td className="p-3 text-center text-xs font-mono text-muted-foreground whitespace-nowrap">
+                           <span className="bg-muted px-1.5 py-0.5 rounded">{file.permissions || '-'}</span>
+                       </td>
+                       <td className="p-3 text-center text-xs text-muted-foreground whitespace-nowrap">
+                           {file.owner}:{file.group}
+                       </td>
+                       <td className="p-3 text-right text-xs text-muted-foreground tabular-nums whitespace-nowrap">{formatDate(file.mtime)}</td>
+                       <td className="p-3 text-center sticky right-0 bg-background group-hover:bg-muted/50 shadow-[-10px_0_10px_-10px_rgba(0,0,0,0.1)] transition-colors">
+                           <div className="flex items-center justify-center gap-1">
                                {!file.is_dir && (
-                                   <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownload(file)} title="下载">
+                                   <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => handleDownload(file)} title="下载">
                                        <Download className="w-3.5 h-3.5" />
                                    </Button>
                                )}
-                               <Button size="icon" variant="ghost" className="h-7 w-7" title="重命名/移动">
+                               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-orange-500" title="编辑/重命名">
                                    <Edit className="w-3.5 h-3.5" />
+                               </Button>
+                               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" title="删除" onClick={() => {
+                                   setSelectedFiles([file.name]);
+                                   // Logic to open delete confirm
+                                   handleDelete() 
+                               }}>
+                                   <Trash className="w-3.5 h-3.5" />
                                </Button>
                            </div>
                        </td>
@@ -287,11 +398,16 @@ export default function FileManager() {
             </tbody>
           </table>
         </div>
-        <div className="bg-muted/30 p-2 text-xs text-muted-foreground border-t flex justify-between px-4">
-            <span>总计 {files.length} 个项目</span>
-            <span>已选择 {selectedFiles.length} 个</span>
+        <div className="bg-muted/30 p-2 text-xs text-muted-foreground border-t flex justify-between px-4 items-center h-9">
+            <div className="flex gap-4">
+                <span>总计 {files.length} 个项目</span>
+            </div>
+            <span>已选择 {selectedFiles.length} 项</span>
         </div>
       </div>
     </div>
   )
 }
+
+// Internal Helper Component for Icon
+const FolderWrapper = ({ className }) => <Folder className={className} />
