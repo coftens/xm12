@@ -13,43 +13,41 @@ const Monitor = () => {
     const [duration, setDuration] = useState('1h') // 1h, 6h, 24h
     const [metrics, setMetrics] = useState({ cpu: [], memory: [], disk: [], network: [] })
     const [loading, setLoading] = useState(false)
+    const [currentStats, setCurrentStats] = useState({ cpu: 0, memory: 0 })
 
-    // In a real app, fetch historical data points
-    // Here we simulate or define empty arrays if backend not ready
+    // Fetch real-time system stats and build history
     useEffect(() => {
         if (!currentServer) return
         
-        const fetchHistory = async () => {
-            setLoading(true)
+        const maxPoints = duration === '1h' ? 60 : duration === '6h' ? 120 : 144
+
+        const fetchStats = async () => {
             try {
-                // Mock endpoint or real one: GET /api/monitor/history?server_id=1&duration=1h
-                // For now, let's generate mock data to visualize changes
-                const now = dayjs()
-                const points = duration === '1h' ? 60 : duration === '6h' ? 360 : 1440
-                const cpuData = []
-                const memData = []
+                const res = await api.get(`/api/system/${currentServer.id}/info`)
+                const cpu = res.data.cpu_usage || 0
+                const memory = res.data.memory_usage || 0
                 
-                for (let i = 0; i < points; i++) {
-                    const time = now.subtract(points - i, 'minute').format('HH:mm')
-                    cpuData.push({ 
-                        name: time, 
-                        value: [time, Math.floor(Math.random() * 80) + 10] 
-                    })
-                    memData.push({
-                         name: time,
-                         value: [time, Math.floor(Math.random() * 60) + 20]
-                    })
-                }
+                setCurrentStats({ cpu, memory })
                 
-                setMetrics({ cpu: cpuData, memory: memData })
+                const time = dayjs().format('HH:mm:ss')
+                
+                setMetrics(prev => {
+                    const newCpu = [...prev.cpu, { name: time, value: [time, cpu] }].slice(-maxPoints)
+                    const newMem = [...prev.memory, { name: time, value: [time, memory] }].slice(-maxPoints)
+                    return { cpu: newCpu, memory: newMem }
+                })
             } catch (err) {
-                console.error("Failed to load monitor history", err)
-            } finally {
-                setLoading(false)
+                console.error("Failed to fetch system stats", err)
             }
         }
 
-        fetchHistory()
+        // Fetch immediately
+        fetchStats()
+        
+        // Then refresh every 3 seconds
+        const interval = setInterval(fetchStats, 3000)
+        
+        return () => clearInterval(interval)
     }, [currentServer, duration])
 
     const getLineOption = (title, data, color, yAxisMax = 100) => ({
