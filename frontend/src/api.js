@@ -12,9 +12,8 @@ const getBaseURL = () => {
   }
   
   // 生产环境：使用同源地址（不指定端口），由 Nginx 在同一端口代理到后端
-  const protocol = window.location.protocol
-  const hostname = window.location.hostname
-  return `${protocol}//${hostname}`
+  // 生产环境：使用当前源（包含协议、域名和端口）
+  return window.location.origin
 }
 
 const api = axios.create({
