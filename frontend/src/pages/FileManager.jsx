@@ -27,7 +27,12 @@ export default function FileManager() {
       const res = await api.get(`/api/files/${currentServer.id}/list`, {
         params: { path }
       })
-      setFiles(res.data)
+      if (Array.isArray(res.data)) {
+        setFiles(res.data)
+      } else {
+        console.error("Invalid file list format", res.data)
+        setFiles([])
+      }
       setCurrentPath(path)
       setSelectedFiles([])
     } catch (err) {
