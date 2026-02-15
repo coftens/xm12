@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import SessionLocal
 from app.models import Server, User
-from app.services.system_service import SystemService
+from app.services.monitor_service import MonitorService
 
 router = APIRouter(tags=["监控WebSocket"])
 
@@ -56,19 +56,26 @@ async def monitor_stream(websocket: WebSocket, server_id: int):
             await websocket.close()
             return
 
-        system_service = SystemService()
+        system_service = MonitorService()
         
         # 持续推送监控数据
         while True:
             try:
                 # 获取系统信息
-                system_info = system_service.get_system_info(server)
+                system_info = system_service.collect(server)
                 
-                # 发送数据
-                await websocket.send_text(json.dumps({
-                    "type": "monitor_data",
-                    "data": system_info
-                }))
+                if system_info:
+                    # 发送数据
+                    await websocket.send_text(json.dumps({
+                        "type": "monitor_data",
+                        "data": system_info
+                    }))
+                else:
+                    # 采集失败
+                    await websocket.send_text(json.dumps({
+                        "type": "error",
+                        "message": "无法采集监控数据"
+                    }))
                 
                 # 等待 3 秒再推送下一次
                 await asyncio.sleep(3)
