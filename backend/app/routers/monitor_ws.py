@@ -61,6 +61,7 @@ async def monitor_stream(websocket: WebSocket, server_id: int):
         
         loop = asyncio.get_event_loop()
 
+
         # 持续推送监控数据
         while True:
             try:
@@ -84,16 +85,22 @@ async def monitor_stream(websocket: WebSocket, server_id: int):
                 # 等待 3 秒再推送下一次
                 await asyncio.sleep(3)
                 
+            except (WebSocketDisconnect, RuntimeError):
+                # 正常断开连接或 Websocket 关闭
+                print(f"WebSocket 断开连接: 服务器 {server_id}")
+                break
             except Exception as e:
+                # 其他异常尝试发送错误消息，如果发送失败（如连接已断开）则直接退出
                 print(f"获取监控数据失败: {e}")
-                await websocket.send_text(json.dumps({
-                    "type": "error",
-                    "message": f"获取监控数据失败: {str(e)}"
-                }))
+                try:
+                    await websocket.send_text(json.dumps({
+                        "type": "error",
+                        "message": f"获取监控数据失败: {str(e)}"
+                    }))
+                except:
+                    break
                 await asyncio.sleep(5)  # 错误时等待更长时间
                 
-    except WebSocketDisconnect:
-        print(f"WebSocket 断开连接: 服务器 {server_id}")
     except Exception as e:
         print(f"WebSocket 错误: {e}")
     finally:
