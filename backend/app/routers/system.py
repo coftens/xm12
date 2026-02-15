@@ -53,6 +53,8 @@ echo "===NETWORK_IPS==="
 ip -4 addr show 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1'
 echo "===NETWORK_STATS==="
 cat /proc/net/dev | grep -v 'lo' | awk 'NR>2 {sum_in+=$2; sum_out+=$10} END {print sum_in, sum_out}'
+echo "===IO_STATS==="
+vmstat 1 2 | tail -1 | awk '{print $15, $16}'
 echo "===BOOT_TIME==="
 who -b 2>/dev/null | awk '{print $3, $4}'
 """
@@ -98,6 +100,7 @@ def _parse_system_info(output: str) -> dict:
         "load_15": 0,
         "cpu_usage": 0,
         "net_io": {"bytes_sent": 0, "bytes_recv": 0},
+        "io_stats": {"read_count": 0, "write_count": 0},
         "ips": [],
         "boot_time": "",
     }
@@ -194,6 +197,16 @@ def _parse_system_info(output: str) -> dict:
                         "bytes_sent": int(float(parts[1]))
                     }
             except ValueError:
+                pass
+        elif section == "IO_STATS":
+             try:
+                parts = val.split()
+                if len(parts) >= 2:
+                    info["io_stats"] = {
+                        "read_count": int(parts[0]),
+                        "write_count": int(parts[1])
+                    }
+             except ValueError:
                 pass
         elif section == "NETWORK_IPS":
             info["ips"] = [ip.strip() for ip in sections[i + 1].strip().split('\n') if ip.strip()]
