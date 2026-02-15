@@ -11,11 +11,10 @@ const getBaseURL = () => {
     return 'http://localhost:8000'
   }
   
-  // 生产环境：根据当前域名动态生成 API 地址
-  // 如果前端在 2388，后端在 8888，同一个 IP
+  // 生产环境：使用同源地址（不指定端口），由 Nginx 在同一端口代理到后端
   const protocol = window.location.protocol
   const hostname = window.location.hostname
-  return `${protocol}//${hostname}:8888`
+  return `${protocol}//${hostname}`
 }
 
 const api = axios.create({

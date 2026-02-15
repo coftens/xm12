@@ -69,8 +69,8 @@ export default function SSHConnection() {
     if (window.location.hostname === 'localhost') {
         backendHost = 'localhost:8000';
     } else {
-        // Production: backend is on port 8888
-        backendHost = `${window.location.hostname}:8888`;
+        // Production: use same host:port as the frontend (Nginx will proxy /ws/ to backend)
+        backendHost = window.location.host
     }
 
     const wsUrl = `${protocol}//${backendHost}/ws/ssh/${currentServer.id}`
