@@ -87,6 +87,7 @@ export default function Dashboard() {
     series: [
       {
         type: 'gauge',
+        radius: '90%',
         startAngle: 90,
         endAngle: -270,
         pointer: { show: false },
@@ -97,22 +98,19 @@ export default function Dashboard() {
           clip: false,
           itemStyle: { color: color }
         },
-        axisLine: { lineStyle: { width: 40, color: [[1, 'rgba(0,0,0,0.1)']] } },
+        axisLine: { lineStyle: { width: 12, color: [[1, 'rgba(0,0,0,0.1)']] } },
         splitLine: { show: false },
         axisTick: { show: false },
         axisLabel: { show: false },
         data: [{ value: value, name: title }],
-        title: { fontSize: 14, color: '#888', offsetCenter: ['0%', '20%'] },
+        title: { fontSize: 12, color: '#888', offsetCenter: ['0%', '30%'] },
         detail: {
           width: 50,
           height: 14,
-          fontSize: 24,
-          color: 'auto',
-          borderColor: 'auto',
-          borderRadius: 20,
-          borderWidth: 1,
+          fontSize: 20,
+          color: 'inherit',
           formatter: '{value}%',
-          offsetCenter: ['0%', '-20%']
+          offsetCenter: ['0%', '-10%']
         }
       }
     ]
