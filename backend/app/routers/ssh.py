@@ -2,9 +2,9 @@
 import asyncio
 import json
 import paramiko
+import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.orm import Session
-from jose import JWTError, jwt
 from app.config import settings
 from app.database import SessionLocal
 from app.models import Server, User, OperationLog
@@ -26,7 +26,7 @@ async def authenticate_ws(websocket: WebSocket) -> tuple:
         if user_id is None:
             await websocket.close(code=4001, reason="无效令牌")
             return None, None
-    except JWTError:
+    except jwt.InvalidTokenError:
         await websocket.close(code=4001, reason="令牌过期或无效")
         return None, None
 
