@@ -115,9 +115,11 @@ export default function Servers() {
                         "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                         server.status === 'online' 
                           ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" 
-                          : "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                          : server.status === 'unknown'
+                            ? "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20"
+                            : "bg-destructive/10 text-destructive hover:bg-destructive/20"
                       )}>
-                        {server.status === 'online' ? '在线' : '离线'}
+                        {server.status === 'online' ? '在线' : server.status === 'unknown' ? '未知' : '离线'}
                       </span>
                     </td>
                     <td className="p-4 align-middle text-muted-foreground">
@@ -157,13 +159,19 @@ export default function Servers() {
                       <button 
                         className="p-2 hover:bg-accent rounded-md"
                         title="测试连接"
-                        onClick={async () => {
+                        onClick={async (e) => {
+                          e.stopPropagation();
                           try {
-                            await api.post(`/api/servers/${server.id}/test`)
+                            const res = await api.post(`/api/servers/${server.id}/test`)
+                            if (res.data.success) {
+                              alert('连接成功')
+                            } else {
+                              alert(`连接失败: ${res.data.message}`)
+                            }
                             fetchServers()
-                            alert('连接测试成功')
-                          } catch {
-                            alert('连接失败')
+                          } catch (err) {
+                            console.error(err)
+                            alert('请求失败')
                           }
                         }}
                       >
