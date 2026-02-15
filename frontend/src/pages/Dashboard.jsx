@@ -25,6 +25,8 @@ const initialUsage = {
 
 export default function Dashboard() {
   const { currentServer, serverMetrics, setServerMetrics } = useServerStore()
+  const [netSpeed, setNetSpeed] = useState({ upload: 0, download: 0 })
+  const [lastNetData, setLastNetData] = useState({ bytes_sent: 0, bytes_recv: 0, timestamp: 0 })
   
   // Use cached metrics if available, otherwise default to initialUsage
   const systemInfo = (currentServer && serverMetrics[currentServer.id]) 
@@ -39,6 +41,28 @@ export default function Dashboard() {
       try {
         const res = await api.get(`/api/system/${currentServer.id}/info`)
         const data = res.data
+        
+        // Calculate network speed (bytes per second)
+        const now = Date.now()
+        const currentSent = data.net_io?.bytes_sent || 0
+        const currentRecv = data.net_io?.bytes_recv || 0
+        
+        if (lastNetData.timestamp > 0) {
+          const timeDiff = (now - lastNetData.timestamp) / 1000 // seconds
+          const uploadSpeed = (currentSent - lastNetData.bytes_sent) / timeDiff
+          const downloadSpeed = (currentRecv - lastNetData.bytes_recv) / timeDiff
+          
+          setNetSpeed({
+            upload: uploadSpeed > 0 ? uploadSpeed : 0,
+            download: downloadSpeed > 0 ? downloadSpeed : 0
+          })
+        }
+        
+        setLastNetData({
+          bytes_sent: currentSent,
+          bytes_recv: currentRecv,
+          timestamp: now
+        })
         
         // Adapt backend flat structure to frontend nested structure
         const adaptedData = {
@@ -55,9 +79,13 @@ export default function Dashboard() {
             total: data.disk_total || 0 
           },
           net_io: { 
-            // If backend provides real data use it, otherwise fallback to 0
-            bytes_sent: data.net_io?.bytes_sent || 0, 
-            bytes_recv: data.net_io?.bytes_recv || 0
+            bytes_sent: currentSent, 
+            bytes_recv: currentRecv
+          },
+          load: {
+            load_1: data.load_1 || 0,
+            load_5: data.load_5 || 0,
+            load_15: data.load_15 || 0
           },
           uptime: data.uptime || 0
         }
@@ -68,8 +96,10 @@ export default function Dashboard() {
       }
     }
     
-    // Fetch immediately only if we don't have data, otherwise respect the interval or fetch quietly
-    // Actually, always fetch fresh data, but the UI already shows cached data
+    // Reset network data when switching servers
+    setLastNetData({ bytes_sent: 0, bytes_recv: 0, timestamp: 0 })
+    setNetSpeed({ upload: 0, download: 0 })
+    
     fetchData()
     const interval = setInterval(fetchData, 5000)
     return () => clearInterval(interval)
@@ -210,27 +240,35 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">网络 / 负载</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="space-y-4 pt-4">
+          <CardContent className="space-y-3 pt-4">
              <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center text-green-500">
                    <ArrowUp className="w-4 h-4 mr-1"/>
                    上传
                 </div>
-                <span>{formatBytes(systemInfo.net_io?.bytes_sent)}</span>
+                <span className="font-mono">{formatBytes(netSpeed.upload)}/s</span>
              </div>
              <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center text-blue-500">
                    <ArrowDown className="w-4 h-4 mr-1"/>
                    下载
                 </div>
-                <span>{formatBytes(systemInfo.net_io?.bytes_recv)}</span>
+                <span className="font-mono">{formatBytes(netSpeed.download)}/s</span>
              </div>
-             <div className="pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                <div className="flex items-center">
-                   <Clock className="w-3 h-3 mr-1"/>
-                   运行时间
+             <div className="pt-3 border-t border-border space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                   <span className="text-muted-foreground">负载 (1/5/15min)</span>
+                   <span className="font-mono">
+                     {systemInfo.load?.load_1?.toFixed(2) || '0.00'} / {systemInfo.load?.load_5?.toFixed(2) || '0.00'} / {systemInfo.load?.load_15?.toFixed(2) || '0.00'}
+                   </span>
                 </div>
-                <span>{typeof systemInfo.uptime === 'number' ? `${Math.floor(systemInfo.uptime / 3600)} 小时` : systemInfo.uptime}</span>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                   <div className="flex items-center">
+                      <Clock className="w-3 h-3 mr-1"/>
+                      运行时间
+                   </div>
+                   <span>{typeof systemInfo.uptime === 'number' ? `${Math.floor(systemInfo.uptime / 3600)} 小时` : systemInfo.uptime}</span>
+                </div>
              </div>
           </CardContent>
         </Card>
