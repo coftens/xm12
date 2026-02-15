@@ -48,7 +48,11 @@ df -B1 --total 2>/dev/null | grep -E "^/|total"
 echo "===LOAD==="
 cat /proc/loadavg
 echo "===CPU_USAGE==="
-grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}'
+# 读取两次 /proc/stat 计算实时 CPU 使用率
+grep 'cpu ' /proc/stat > /tmp/cpu_stat_1
+sleep 1
+grep 'cpu ' /proc/stat > /tmp/cpu_stat_2
+awk 'NR==1{u1=$2; n1=$3; s1=$4; i1=$5; w1=$6; x1=$7; y1=$8; z1=$9} NR==2{u2=$2; n2=$3; s2=$4; i2=$5; w2=$6; x2=$7; y2=$8; z2=$9; total=(u2+n2+s2+i2+w2+x2+y2+z2)-(u1+n1+s1+i1+w1+x1+y1+z1); idle=i2-i1; if(total>0) print 100*(total-idle)/total; else print 0}' /tmp/cpu_stat_1 /tmp/cpu_stat_2
 echo "===NETWORK_IPS==="
 ip -4 addr show 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1'
 echo "===NETWORK_STATS==="
