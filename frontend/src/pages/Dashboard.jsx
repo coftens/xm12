@@ -35,7 +35,29 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const res = await api.get(`/api/system/${currentServer.id}/info`)
-        setSystemInfo(res.data)
+        const data = res.data
+        
+        // Adapt backend flat structure to frontend nested structure
+        setSystemInfo({
+          cpu_percent: data.cpu_usage || 0,
+          cpu_count: data.cpu_cores || 0,
+          memory: { 
+            percent: data.memory_usage || 0, 
+            used: data.memory_used || 0, 
+            total: data.memory_total || 0 
+          },
+          disk: { 
+            percent: data.disk_usage || 0, 
+            used: data.disk_used || 0, 
+            total: data.disk_total || 0 
+          },
+          net_io: { 
+            // Backend currently doesn't provide real-time traffic in this endpoint
+            bytes_sent: 0, 
+            bytes_recv: 0 
+          },
+          uptime: data.uptime || 0
+        })
       } catch (err) {
         console.error("Failed to fetch system info", err)
       }
