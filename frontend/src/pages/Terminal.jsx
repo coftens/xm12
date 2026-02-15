@@ -64,7 +64,16 @@ export default function SSHConnection() {
   const connectWebSocket = (term) => {
     setError('')
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}/ws/ssh/${currentServer.id}/ws`
+    // Determine the backend host (similar to api.js logic)
+    let backendHost;
+    if (window.location.hostname === 'localhost') {
+        backendHost = 'localhost:8000';
+    } else {
+        // Production: backend is on port 8888
+        backendHost = `${window.location.hostname}:8888`;
+    }
+
+    const wsUrl = `${protocol}//${backendHost}/ws/ssh/${currentServer.id}/ws`
     
     // Auth token in URL or protocol is tricky with standard WebSocket in browser if headers not supported
     // Usually we pass token as a query param or strict cookie.
