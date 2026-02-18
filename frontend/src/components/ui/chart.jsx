@@ -40,7 +40,7 @@ const ChartContainer = React.forwardRef(({
                 {...props}
             >
                 <ChartStyle id={chartId} config={config} />
-                <RechartsPrimitive.ResponsiveContainer minWidth={0}>
+                <RechartsPrimitive.ResponsiveContainer minWidth={0} debounce={100} width="100%" height="100%">
                     {children}
                 </RechartsPrimitive.ResponsiveContainer>
             </div>
