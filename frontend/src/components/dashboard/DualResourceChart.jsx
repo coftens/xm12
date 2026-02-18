@@ -57,7 +57,7 @@ export function DualResourceChart({
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="h-[200px] w-full">
+                <div className="h-[200px] w-full min-w-[300px]">
                     <ChartContainer config={chartConfig} className="h-full w-full">
                         <AreaChart
                             data={data}
