@@ -158,34 +158,27 @@ const ServerMonitorCard = ({ server }) => {
         </div>
 
         {/* Metric Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <MetricCard
             title="CPU"
             value={`${systemInfo.cpu_usage || 0}`}
             unit="%"
             percentage={systemInfo.cpu_usage || 0}
-            icon={<div className="i-lucide-cpu text-blue-500" />} // Using div wrapper if icon logic expects component, but MetricCard expects node. 
-            // Wait, standard Lucide icons are components. Let's pass the component instance or element.
-            // MetricCard uses {icon} directly.
-            icon={<Cpu className="size-5 text-blue-500" />}
-            color="bg-blue-500/10"
+            icon={<Cpu />}
           />
           <MetricCard
             title="内存"
             value={`${Math.round(systemInfo.memory_usage || 0)}`}
             unit="%"
             percentage={systemInfo.memory_usage || 0}
-            icon={<div className="i-lucide-memory-stick text-purple-500" />} // Wait, let's stick to the imports
-            icon={<MemoryStick className="size-5 text-purple-500" />}
-            color="bg-purple-500/10"
+            icon={<MemoryStick />}
           />
           <MetricCard
             title="磁盘"
             value={`${Math.round(systemInfo.disk_usage || 0)}`}
             unit="%"
             percentage={systemInfo.disk_usage || 0}
-            icon={<HardDrive className="size-5 text-yellow-500" />}
-            color="bg-yellow-500/10"
+            icon={<HardDrive />}
           />
         </div>
 
