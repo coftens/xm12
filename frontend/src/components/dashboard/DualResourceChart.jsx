@@ -47,7 +47,7 @@ export function DualResourceChart({
                 </div>
             </CardHeader>
             <CardContent>
-                <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full min-w-0 block">
+                <ChartContainer config={chartConfig} className="h-[250px] w-full">
                     <AreaChart
                         data={data}
                         margin={{ top: 5, right: 0, bottom: 0, left: 0 }}
