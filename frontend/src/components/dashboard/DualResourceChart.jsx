@@ -44,73 +44,61 @@ export function DualResourceChart({
                             {title}
                         </CardTitle>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1.5">
-                            <div className={`size-2 rounded-full`} style={{ backgroundColor: `hsl(var(${colorVar1}))` }} />
-                            <span className="text-xs text-muted-foreground">{label1}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <div className={`size-2 rounded-full`} style={{ backgroundColor: `hsl(var(${colorVar2}))` }} />
-                            <span className="text-xs text-muted-foreground">{label2}</span>
-                        </div>
-                    </div>
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="h-[200px] w-full min-w-0">
-                    <ChartContainer config={chartConfig} className="h-full w-full aspect-none">
-                        <AreaChart
-                            data={data}
-                            margin={{ top: 5, right: 0, bottom: 0, left: 0 }}
-                        >
-                            <defs>
-                                <linearGradient id={`gradient-${key1}`} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={`var(${colorVar1})`} stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor={`var(${colorVar1})`} stopOpacity={0} />
-                                </linearGradient>
-                                <linearGradient id={`gradient-${key2}`} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={`var(${colorVar2})`} stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor={`var(${colorVar2})`} stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
-                            <XAxis
-                                dataKey="time"
-                                tickLine={false}
-                                axisLine={false}
-                                tickMargin={8}
-                                minTickGap={30}
-                                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
-                            />
-                            <YAxis
-                                tickLine={false}
-                                axisLine={false}
-                                tickMargin={8}
-                                tickCount={5}
-                                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
-                            />
-                            <ChartTooltip content={<ChartTooltipContent />} />
-                            <Area
-                                type="monotone"
-                                dataKey={key1}
-                                stroke={`var(${colorVar1})`}
-                                strokeWidth={2}
-                                fill={`url(#gradient-${key1})`}
-                                stackId="1"
-                                fillOpacity={1}
-                            />
-                            <Area
-                                type="monotone"
-                                dataKey={key2}
-                                stroke={`var(${colorVar2})`}
-                                strokeWidth={2}
-                                fill={`url(#gradient-${key2})`}
-                                stackId="1"
-                                fillOpacity={1}
-                            />
-                        </AreaChart>
-                    </ChartContainer>
-                </div>
+                <ChartContainer config={chartConfig} className="h-[200px] w-full min-w-[1px]">
+                    <AreaChart
+                        data={data}
+                        margin={{ top: 5, right: 0, bottom: 0, left: 0 }}
+                    >
+                        <defs>
+                            <linearGradient id={`gradient-${key1}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={`var(${colorVar1})`} stopOpacity={0.3} />
+                                <stop offset="95%" stopColor={`var(${colorVar1})`} stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id={`gradient-${key2}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={`var(${colorVar2})`} stopOpacity={0.3} />
+                                <stop offset="95%" stopColor={`var(${colorVar2})`} stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                        <XAxis
+                            dataKey="time"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            minTickGap={30}
+                            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                        />
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickCount={5}
+                            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                        />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Area
+                            type="monotone"
+                            dataKey={key1}
+                            stroke={`var(${colorVar1})`}
+                            strokeWidth={2}
+                            fill={`url(#gradient-${key1})`}
+                            stackId="1"
+                            fillOpacity={1}
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey={key2}
+                            stroke={`var(${colorVar2})`}
+                            strokeWidth={2}
+                            fill={`url(#gradient-${key2})`}
+                            stackId="1"
+                            fillOpacity={1}
+                        />
+                    </AreaChart>
+                </ChartContainer>
             </CardContent>
         </Card>
     )
