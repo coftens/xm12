@@ -21,12 +21,17 @@ function formatSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-function formatDate(timestamp) {
-  if (!timestamp) return '-'
-  return new Date(timestamp * 1000).toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit'
-  })
+function formatDate(modified) {
+  if (!modified) return '-'
+  // Backend returns string like '2024-01-15 10:30' or unix timestamp
+  if (typeof modified === 'number') {
+    return new Date(modified * 1000).toLocaleString('zh-CN', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    })
+  }
+  // String date from ls --time-style=long-iso: '2024-01-15 10:30'
+  return modified
 }
 
 function getFileType(file) {
@@ -794,7 +799,7 @@ export default function FileManager() {
       let cmp = 0
       if (sortField === 'name') cmp = a.name.localeCompare(b.name)
       else if (sortField === 'size') cmp = (a.size || 0) - (b.size || 0)
-      else if (sortField === 'modified') cmp = (a.mtime || 0) - (b.mtime || 0)
+      else if (sortField === 'modified') cmp = (a.modified || '').localeCompare(b.modified || '')
       return sortDirection === 'asc' ? cmp : -cmp
     })
     return result
