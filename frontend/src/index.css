@@ -33,6 +33,13 @@
     --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
+
+    /* Chart Colors */
+    --chart-1: 222.2 47.4% 11.2%;
+    --chart-2: 210 40% 96.1%;
+    --chart-3: 215.4 16.3% 46.9%;
+    --chart-4: 210 40% 96.1%;
+    --chart-5: 222.2 47.4% 11.2%;
   }
 
   .dark {
@@ -64,6 +71,13 @@
     --border: 217 19% 27%;
     --input: 217 19% 27%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Chart Colors - Dark Mode */
+    --chart-1: 194 80% 43%;   /* Matches Primary Blue */
+    --chart-2: 280 65% 60%;   /* Purple for Memory */
+    --chart-3: 142 70% 50%;   /* Green */
+    --chart-4: 48 96% 53%;    /* Yellow/Orange */
+    --chart-5: 0 84% 60%;     /* Red */
   }
 }
 
