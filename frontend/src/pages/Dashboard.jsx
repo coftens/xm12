@@ -8,51 +8,15 @@ import {
   Server as ServerIcon,
   CheckCircle2,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Cpu,
+  MemoryStick,
+  HardDrive
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import api from '@/api'
+import { MetricCard } from '@/components/dashboard/MetricCard'
 
-// Simple Circular Progress Component (Baota Style)
-const CircularProgress = ({ value, color = '#3b82f6', size = 120, strokeWidth = 8, label, subLabel }) => {
-  const radius = (size - strokeWidth) / 2
-  const circumference = radius * 2 * Math.PI
-  const offset = circumference - (value / 100) * circumference
-
-  return (
-    <div className="relative flex flex-col items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
-        {/* Background Circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#e5e7eb"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-        />
-        {/* Progress Circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="transition-all duration-500 ease-out"
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-xl font-bold" style={{ color }}>{Math.round(value)}%</span>
-        {label && <span className="text-xs text-muted-foreground mt-0.5">{label}</span>}
-      </div>
-      {subLabel && <div className="absolute -bottom-5 text-[10px] text-muted-foreground whitespace-nowrap">{subLabel}</div>}
-    </div>
-  )
-}
 
 // Initial Mock Data
 const initialUsage = {
@@ -174,24 +138,10 @@ const ServerMonitorCard = ({ server }) => {
     return () => {
       if (ws.readyState === WebSocket.OPEN) ws.close()
     }
-    // Remove lastNetData.timestamp from dependency array to prevent loop
   }, [server.id, setServerMetrics])
 
-  // Determine Load Status Color - Adjusted for Blue Theme
-  const getLoadStatus = (load, cores = 1) => {
-    const ratio = load / cores
-    // Using Blue as "Normal/Good" status instead of Green, based on user request?
-    // User said "Subject color not green change to blue"
-    // So "Normal" = Blue.
-    if (ratio < 0.7) return { text: '运行流畅', color: '#3b82f6', icon: CheckCircle2 } // Blue-500
-    if (ratio < 1.0) return { text: '负载正常', color: '#60a5fa', icon: CheckCircle2 } // Blue-400
-    return { text: '负载过高', color: '#ef4444', icon: AlertTriangle } // Red still makes sense for danger
-  }
-
-  const loadStatus = getLoadStatus(systemInfo.load?.load_1 || 0, 4)
-
   return (
-    <Card className="overflow-hidden border-t-4" style={{ borderTopColor: isConnected ? loadStatus.color : '#9ca3af' }}>
+    <Card className="overflow-hidden border-t-4 shadow-sm" style={{ borderTopColor: isConnected ? '#3b82f6' : '#9ca3af' }}>
       <CardContent className="p-4 space-y-4">
         {/* Header */}
         <div className="flex justify-between items-center mb-2">
@@ -207,65 +157,40 @@ const ServerMonitorCard = ({ server }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2">
-          {/* Load - Key Metric */}
-          <div className="flex flex-col items-center justify-center p-2 col-span-1">
-            <CircularProgress
-              value={Math.min((systemInfo.load?.load_1 || 0) * 100 / (systemInfo.cpu_count || 1), 100)}
-              color={loadStatus.color}
-              size={60}
-              strokeWidth={6}
-              label=""
-            />
-            <span className="text-xs font-medium mt-1 text-center truncate w-full" style={{ color: loadStatus.color }}>
-              {loadStatus.text}
-            </span>
-            <span className="text-[10px] text-muted-foreground">{systemInfo.load?.load_1}</span>
-          </div>
-
-          {/* CPU */}
-          <div className="flex flex-col items-center justify-center col-span-1">
-            <CircularProgress
-              value={systemInfo.cpu_usage || 0}
-              color="#3b82f6"
-              size={70}
-              strokeWidth={7}
-              label="CPU"
-            />
-            <span className="text-[10px] text-muted-foreground mt-1">{systemInfo.cpu_count} 核心</span>
-          </div>
-
-          {/* Memory */}
-          <div className="flex flex-col items-center justify-center col-span-1">
-            <CircularProgress
-              value={systemInfo.memory_usage || 0}
-              color="#3b82f6"
-              size={70}
-              strokeWidth={7}
-              label="内存"
-            />
-            <span className="text-[10px] text-muted-foreground mt-1 truncate max-w-full" title={`${formatBytes(systemInfo.memory_used_bytes)} / ${formatBytes(systemInfo.memory_total_bytes)}`}>
-              {formatBytes(systemInfo.memory_used_bytes)} / {formatBytes(systemInfo.memory_total_bytes)}
-            </span>
-          </div>
-
-          {/* Disk */}
-          <div className="flex flex-col items-center justify-center col-span-1">
-            <CircularProgress
-              value={systemInfo.disk_usage || 0}
-              color={systemInfo.disk_usage > 90 ? '#ef4444' : '#3b82f6'}
-              size={70}
-              strokeWidth={7}
-              label="磁盘"
-            />
-            <span className="text-[10px] text-muted-foreground mt-1 truncate max-w-full" title={`${formatBytes(systemInfo.disk_used_bytes)} / ${formatBytes(systemInfo.disk_total_bytes)}`}>
-              {formatBytes(systemInfo.disk_used_bytes)} / {formatBytes(systemInfo.disk_total_bytes)}
-            </span>
-          </div>
+        {/* Metric Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <MetricCard
+            title="CPU"
+            value={`${systemInfo.cpu_usage || 0}`}
+            unit="%"
+            percentage={systemInfo.cpu_usage || 0}
+            icon={<div className="i-lucide-cpu text-blue-500" />} // Using div wrapper if icon logic expects component, but MetricCard expects node. 
+            // Wait, standard Lucide icons are components. Let's pass the component instance or element.
+            // MetricCard uses {icon} directly.
+            icon={<Cpu className="size-5 text-blue-500" />}
+            color="bg-blue-500/10"
+          />
+          <MetricCard
+            title="内存"
+            value={`${Math.round(systemInfo.memory_usage || 0)}`}
+            unit="%"
+            percentage={systemInfo.memory_usage || 0}
+            icon={<div className="i-lucide-memory-stick text-purple-500" />} // Wait, let's stick to the imports
+            icon={<MemoryStick className="size-5 text-purple-500" />}
+            color="bg-purple-500/10"
+          />
+          <MetricCard
+            title="磁盘"
+            value={`${Math.round(systemInfo.disk_usage || 0)}`}
+            unit="%"
+            percentage={systemInfo.disk_usage || 0}
+            icon={<HardDrive className="size-5 text-yellow-500" />}
+            color="bg-yellow-500/10"
+          />
         </div>
 
         {/* Network & Uptime Footer */}
-        <div className="bg-muted/20 -mx-4 -mb-4 p-3 mt-2 border-t text-xs flex justify-between items-center text-muted-foreground">
+        <div className="bg-muted/30 -mx-4 -mb-4 p-3 mt-2 border-t text-xs flex justify-between items-center text-muted-foreground">
           <div className="flex gap-3">
             <div className="flex items-center gap-1" title="上传速度">
               <ArrowUp className="w-3 h-3 text-blue-500" />
