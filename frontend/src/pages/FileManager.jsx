@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useServerStore } from '@/store/useServerStore'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -19,7 +20,8 @@ import {
   ArrowLeft, ArrowRight, ArrowUp, RefreshCw, Search, FolderPlus, Upload, Download,
   Scissors, Copy, ClipboardPaste, Trash2, Edit3, LayoutGrid, List, Table2,
   Eye, EyeOff, MoreHorizontal, ChevronRight, Home, HardDrive,
-  CheckSquare, XSquare, ToggleRight, X, ArrowUp as ArrowUpIcon, ArrowDown
+  CheckSquare, XSquare, ToggleRight, X, ArrowUp as ArrowUpIcon, ArrowDown,
+  TerminalSquare
 } from 'lucide-react'
 
 // ===================== 工具函数 =====================
@@ -98,7 +100,7 @@ function Toolbar({ currentPath, viewMode, showHidden, canGoBack, canGoForward, h
   hasClipboard, searchQuery, onBack, onForward, onUp, onRefresh, onViewModeChange,
   onToggleHidden, onNewFolder, onUpload, onDownload, onCut, onCopy, onPaste,
   onDelete, onRename, onSearchChange, onPathChange, onSelectAll, onInvertSelection,
-  onClearSelection, selectedCount, totalCount, loading }) {
+  onClearSelection, onOpenTerminal, selectedCount, totalCount, loading }) {
 
   const [editingPath, setEditingPath] = useState(false)
   const [pathInput, setPathInput] = useState(currentPath)
@@ -163,6 +165,8 @@ function Toolbar({ currentPath, viewMode, showHidden, canGoBack, canGoForward, h
       <div className="flex items-center gap-0.5 border-t border-border/50 px-2 py-1">
         <TBtn icon={FolderPlus} tooltip="新建文件夹 (Ctrl+Shift+N)" onClick={onNewFolder} label="新建文件夹" />
         <TBtn icon={Upload} tooltip="上传文件" onClick={onUpload} label="上传" />
+        <Separator orientation="vertical" className="mx-1 h-5" />
+        <TBtn icon={TerminalSquare} tooltip="在此处打开终端" onClick={onOpenTerminal} label="终端" />
         <Separator orientation="vertical" className="mx-1 h-5" />
         <TBtn icon={Scissors} tooltip="剪切 (Ctrl+X)" onClick={onCut} disabled={!hasSelection} />
         <TBtn icon={Copy} tooltip="复制 (Ctrl+C)" onClick={onCopy} disabled={!hasSelection} />
@@ -353,7 +357,7 @@ function DetailsView({ files, selectedItems, onSelect, onOpen, onContextMenu, so
 }
 
 // ===================== 右键菜单 =====================
-function ContextMenu({ state, onClose, onOpen, onCut, onCopy, onPaste, onDelete, onRename, onNewFolder, onUpload, onDownload, onRefresh, hasClipboard, hasSelection }) {
+function ContextMenu({ state, onClose, onOpen, onCut, onCopy, onPaste, onDelete, onRename, onNewFolder, onUpload, onDownload, onRefresh, onOpenTerminal, hasClipboard, hasSelection }) {
   useEffect(() => {
     const h = () => onClose()
     window.addEventListener('click', h)
@@ -372,6 +376,8 @@ function ContextMenu({ state, onClose, onOpen, onCut, onCopy, onPaste, onDelete,
     <div className="fixed z-50 min-w-[190px] rounded-lg border border-border bg-popover shadow-xl py-1 text-popover-foreground"
       style={{ left: state.x, top: state.y }} onClick={e => e.stopPropagation()}>
       {state.file && <><MI icon={state.file.is_dir ? Folder : File} label={`打开 "${state.file.name}"`} onClick={() => onOpen(state.file)} /><div className="my-1 h-px bg-border" /></>}
+      <MI icon={TerminalSquare} label="在此处打开终端" onClick={onOpenTerminal} />
+      <div className="my-1 h-px bg-border" />
       <MI icon={Scissors} label="剪切" onClick={onCut} disabled={!hasSelection} />
       <MI icon={Copy} label="复制" onClick={onCopy} disabled={!hasSelection} />
       <MI icon={ClipboardPaste} label="粘贴" onClick={onPaste} disabled={!hasClipboard} />
@@ -508,6 +514,7 @@ function StatusBar({ totalItems, selectedCount, currentPath }) {
 
 // ===================== 主组件 =====================
 export default function FileManager() {
+  const navigate = useNavigate()
   const currentServer = useServerStore(state => state.currentServer)
   const [currentPath, setCurrentPath] = useState('/')
   const [files, setFiles] = useState([])
@@ -644,6 +651,12 @@ export default function FileManager() {
     else alert('批量下载需要后端支持打包 API')
   }, [selectedItems, files, handleDownload])
 
+  const handleOpenTerminal = useCallback(() => {
+    if (!currentServer) return
+    // Navigate to terminal with server ID and current path
+    navigate(`/terminal?server=${currentServer.id}&path=${encodeURIComponent(currentPath)}`)
+  }, [currentServer, currentPath, navigate])
+
   const handleDragEnter = e => { e.preventDefault(); dragCounter.current++; if (e.dataTransfer.items?.length > 0) setIsDragActive(true) }
   const handleDragLeave = e => { e.preventDefault(); dragCounter.current--; if (dragCounter.current <= 0) { setIsDragActive(false); dragCounter.current = 0 } }
   const handleDragOver = e => e.preventDefault()
@@ -707,7 +720,8 @@ export default function FileManager() {
           onDownload={handleDownloadSelected} onCut={handleCut} onCopy={handleCopy} onPaste={handlePaste}
           onDelete={handleDelete} onRename={handleRename} onSearchChange={setSearchQuery}
           onPathChange={navigateTo} onSelectAll={handleSelectAll} onInvertSelection={handleInvertSelection}
-          onClearSelection={handleClearSelection} selectedCount={selectedItems.size} totalCount={processedFiles.length} />
+          onClearSelection={handleClearSelection} selectedCount={selectedItems.size} totalCount={processedFiles.length}
+          onOpenTerminal={handleOpenTerminal} />
 
         <div className="flex flex-1 overflow-hidden">
           <Sidebar currentPath={currentPath} onNavigate={navigateTo} server={currentServer} />
@@ -731,7 +745,8 @@ export default function FileManager() {
           onOpen={f => handleOpen(f)} onCut={handleCut} onCopy={handleCopy} onPaste={handlePaste}
           onDelete={handleDelete} onRename={handleRename} onNewFolder={() => setNewFolderOpen(true)}
           onUpload={() => setUploadOpen(true)} onDownload={f => handleDownload(f)}
-          onRefresh={() => fetchFiles(currentPath)} hasClipboard={!!clipboard} hasSelection={selectedItems.size > 0} />
+          onRefresh={() => fetchFiles(currentPath)} hasClipboard={!!clipboard} hasSelection={selectedItems.size > 0}
+          onOpenTerminal={handleOpenTerminal} />
 
         <NewFolderDialog open={newFolderOpen} onClose={() => setNewFolderOpen(false)} onCreate={handleNewFolder} />
         <RenameDialog open={renameOpen} onClose={() => { setRenameOpen(false); setRenameTarget(null) }} file={renameTarget} onRename={handleRenameConfirm} />
