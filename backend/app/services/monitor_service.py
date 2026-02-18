@@ -11,7 +11,7 @@ class MonitorService:
     def __init__(self):
         self.ssh_service = SSHService()
 
-    def collect(self, server: Server) -> Optional[Dict]:
+    def collect(self, server: Server, include_system: bool = False) -> Optional[Dict]:
         """采集服务器监控数据"""
         try:
             # 一次性执行多个命令，减少连接次数
@@ -32,12 +32,22 @@ echo "===UPTIME==="
 cat /proc/uptime
 echo "===DISK_IO==="
 cat /proc/diskstats | grep -E 'sda|vda|xvda|nvme0n1' | head -n 1 | awk '{print $6,$10}'
-echo "===SYSTEM==="
+"""
+            if include_system:
+                commands += """echo "===SYSTEM==="
 cat /etc/os-release | grep -E "^ID=|^VERSION_ID="
 grep "model name" /proc/cpuinfo | head -n 1 | awk -F: '{print $2}'
 """
             stdout, stderr = self.ssh_service.execute_command(server, commands, timeout=15)
-            return self._parse_output(stdout)
+            data = self._parse_output(stdout)
+            
+            # 如果不需要系统信息，确保不包含这些字段（虽然 _parse_output 可能会解析空值，但最好清理干净）
+            if not include_system:
+                keys_to_remove = ["platform", "platform_release", "processor", "_src_version"]
+                for key in keys_to_remove:
+                    data.pop(key, None)
+            
+            return data
         except Exception as e:
             print(f"监控采集失败 [{server.name}]: {e}")
             return None

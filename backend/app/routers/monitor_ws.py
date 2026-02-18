@@ -67,7 +67,8 @@ async def monitor_stream(websocket: WebSocket, server_id: int):
             try:
                 # Run blocking SSH call in a separate thread
                 # 获取系统信息
-                system_info = await loop.run_in_executor(None, system_service.collect, server)
+                # 获取系统信息
+                system_info = await loop.run_in_executor(None, lambda: system_service.collect(server, include_system=True))
                 
                 if system_info:
                     # 发送数据
