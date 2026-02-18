@@ -425,99 +425,85 @@ async def run_vulnerability_scan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """在指定服务器上执行漏洞扫描（检测可升级的安全包）"""
+    """在指定服务器上执行漏洞扫描 - 单次 SSH 连接完成所有检查"""
     server = db.query(Server).filter(Server.id == data.get("server_id")).first()
     if not server:
         raise HTTPException(404, "服务器不存在")
     
     try:
+        # 所有检查合并为一个 SSH 命令（避免多次连接超时）
+        scan_script = """
+echo '===OS_INFO==='
+cat /etc/os-release 2>/dev/null | head -3
+echo '===UPGRADABLE==='
+if command -v apt >/dev/null 2>&1; then
+  apt list --upgradable 2>/dev/null | tail -n +2 | head -30 || true
+elif command -v yum >/dev/null 2>&1; then
+  yum check-update 2>/dev/null | tail -n +3 | head -30 || true
+fi
+echo '===SSH_CONFIG==='
+grep -E '^(PermitRootLogin|PasswordAuthentication|PermitEmptyPasswords|Port |MaxAuthTries)' /etc/ssh/sshd_config 2>/dev/null || true
+echo '===FAIL2BAN==='
+systemctl is-active fail2ban 2>/dev/null || echo 'inactive'
+echo '===END==='
+"""
+        out, err = ssh_service.execute_command(server, scan_script, timeout=45)
+        
+        # 解析分段输出
+        sections = {}
+        current_section = ""
+        for line in out.split("\n"):
+            line = line.strip()
+            if line.startswith("===") and line.endswith("==="):
+                current_section = line.strip("=")
+                sections[current_section] = []
+            elif current_section and line:
+                sections[current_section].append(line)
+        
+        # 解析 OS 信息
+        os_info = "\n".join(sections.get("OS_INFO", []))
+        is_debian = "debian" in os_info.lower() or "ubuntu" in os_info.lower()
+        
+        # 解析可升级包
         results = []
-        
-        # 检测系统类型
-        os_out, _ = ssh_service.execute_command(server, "cat /etc/os-release 2>/dev/null | head -5")
-        is_debian = "debian" in os_out.lower() or "ubuntu" in os_out.lower()
-        
-        if is_debian:
-            # Debian/Ubuntu: 使用 apt 检测可升级的安全包
-            out, _ = ssh_service.execute_command(
-                server,
-                "apt list --upgradable 2>/dev/null | grep -i secur || true",
-                timeout=60
-            )
-            # 也检查所有可升级的包
-            all_upgradable, _ = ssh_service.execute_command(
-                server,
-                "apt list --upgradable 2>/dev/null | tail -n +2 | head -30 || true",
-                timeout=60
-            )
-            for line in all_upgradable.strip().split("\n"):
-                if not line.strip() or "Listing" in line:
-                    continue
+        for line in sections.get("UPGRADABLE", []):
+            if not line or "Listing" in line:
+                continue
+            
+            if is_debian:
                 parts = line.split("/")
                 pkg_name = parts[0] if parts else line
                 version_info = line.split()
-                current_ver = ""
-                new_ver = ""
-                if len(version_info) >= 2:
-                    new_ver = version_info[1] if len(version_info) > 1 else ""
-                
-                severity = "low"
-                if "secur" in line.lower():
-                    severity = "high"
-                elif "linux-" in pkg_name or "openssl" in pkg_name or "openssh" in pkg_name:
-                    severity = "high"
-                elif "nginx" in pkg_name or "apache" in pkg_name or "mysql" in pkg_name:
-                    severity = "medium"
-                
-                results.append({
-                    "package": pkg_name,
-                    "current_version": current_ver,
-                    "new_version": new_ver,
-                    "severity": severity,
-                    "status": "open",
-                    "server": server.name,
-                    "raw": line.strip(),
-                })
-        else:
-            # CentOS / RHEL: 使用 yum
-            out, _ = ssh_service.execute_command(
-                server,
-                "yum check-update --security 2>/dev/null | tail -n +3 | head -30 || yum check-update 2>/dev/null | tail -n +3 | head -30 || true",
-                timeout=60
-            )
-            for line in out.strip().split("\n"):
-                if not line.strip():
-                    continue
+                new_ver = version_info[1] if len(version_info) > 1 else ""
+            else:
                 parts = line.split()
-                if len(parts) >= 2:
-                    pkg_name = parts[0]
-                    new_ver = parts[1] if len(parts) > 1 else ""
-                    
-                    severity = "low"
-                    if "kernel" in pkg_name or "openssl" in pkg_name or "openssh" in pkg_name:
-                        severity = "high"
-                    elif "nginx" in pkg_name or "httpd" in pkg_name or "mysql" in pkg_name:
-                        severity = "medium"
-                    
-                    results.append({
-                        "package": pkg_name,
-                        "current_version": "",
-                        "new_version": new_ver,
-                        "severity": severity,
-                        "status": "open",
-                        "server": server.name,
-                        "raw": line.strip(),
-                    })
+                if len(parts) < 2:
+                    continue
+                pkg_name = parts[0]
+                new_ver = parts[1]
+            
+            severity = "low"
+            pkg_lower = pkg_name.lower()
+            if any(k in pkg_lower for k in ["kernel", "openssl", "openssh", "linux-image", "linux-headers", "glibc"]):
+                severity = "high"
+            elif any(k in pkg_lower for k in ["nginx", "apache", "httpd", "mysql", "mariadb", "postgresql", "redis", "docker"]):
+                severity = "medium"
+            elif "secur" in line.lower():
+                severity = "high"
+            
+            results.append({
+                "package": pkg_name,
+                "current_version": "",
+                "new_version": new_ver,
+                "severity": severity,
+                "status": "open",
+                "server": server.name,
+                "raw": line,
+            })
         
-        # 检测 SSH 安全配置
-        ssh_config, _ = ssh_service.execute_command(
-            server,
-            "grep -E '^(PermitRootLogin|PasswordAuthentication|Port |MaxAuthTries|PermitEmptyPasswords)' /etc/ssh/sshd_config 2>/dev/null || true"
-        )
-        
+        # 解析 SSH 配置问题
         ssh_issues = []
-        for line in ssh_config.strip().split("\n"):
-            line = line.strip()
+        for line in sections.get("SSH_CONFIG", []):
             if "PermitRootLogin yes" in line:
                 ssh_issues.append({"issue": "SSH 允许 root 直接登录", "severity": "high", "fix": "设置 PermitRootLogin no"})
             if "PasswordAuthentication yes" in line:
@@ -525,12 +511,10 @@ async def run_vulnerability_scan(
             if "PermitEmptyPasswords yes" in line:
                 ssh_issues.append({"issue": "SSH 允许空密码登录", "severity": "critical", "fix": "设置 PermitEmptyPasswords no"})
         
-        # 检查 fail2ban 是否运行
-        f2b_out, _ = ssh_service.execute_command(
-            server,
-            "systemctl is-active fail2ban 2>/dev/null || service fail2ban status 2>/dev/null | head -1 || echo 'not-installed'"
-        )
-        if "active" not in f2b_out.lower():
+        # 解析 fail2ban
+        f2b_lines = sections.get("FAIL2BAN", [])
+        f2b_status = " ".join(f2b_lines).lower()
+        if "active" not in f2b_status:
             ssh_issues.append({"issue": "fail2ban 未运行（无暴力破解防护）", "severity": "medium", "fix": "安装并启动 fail2ban"})
         
         # 记录操作
