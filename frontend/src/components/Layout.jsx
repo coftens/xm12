@@ -1,11 +1,11 @@
 import React from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { 
-  LayoutDashboard, 
-  Server, 
-  Terminal, 
-  Files, 
-  Activity, 
+import {
+  LayoutDashboard,
+  Server,
+  Terminal,
+  Files,
+  Activity,
   LogOut,
   Settings,
   Shield
@@ -29,7 +29,6 @@ export default function Layout() {
     { to: '/files', icon: Files, label: '文件管理' },
     { to: '/monitor', icon: Activity, label: '资源监控' },
     { to: '/security', icon: Shield, label: '安全中心' },
-    { to: '/settings', icon: Settings, label: '系统设置' },
   ]
 
   return (
@@ -48,8 +47,8 @@ export default function Layout() {
               to={item.to}
               className={({ isActive }) => cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                isActive 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
@@ -74,15 +73,15 @@ export default function Layout() {
       <main className="flex-1 ml-64 min-h-screen flex flex-col">
         {/* Top Header (Optional for Breadcrumbs or User info) */}
         <header className="h-14 border-b border-border bg-background/95 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-40">
-           <h2 className="font-semibold">控制台</h2>
-           <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">管理员</span>
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold">
-                AD
-              </div>
-           </div>
+          <h2 className="font-semibold">控制台</h2>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">管理员</span>
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold">
+              AD
+            </div>
+          </div>
         </header>
-        
+
         <div className="p-6 flex-1 overflow-auto">
           <Outlet />
         </div>
