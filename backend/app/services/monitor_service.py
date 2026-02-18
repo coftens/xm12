@@ -63,7 +63,8 @@ grep "model name" /proc/cpuinfo | head -n 1 | awk -F: '{print $2}'
             "disk_write_sectors": 0,
             "platform": "Unknown",
             "platform_release": "",
-            "processor": "Unknown Processor"
+            "processor": "Unknown Processor",
+            "_src_version": "v2_added_system_info"
         }
 
         sections = output.split("===")
