@@ -144,15 +144,30 @@ const ServerMonitorCard = ({ server }) => {
     <Card className="overflow-hidden border-t-4 shadow-sm" style={{ borderTopColor: isConnected ? '#3b82f6' : '#9ca3af' }}>
       <CardContent className="p-4 space-y-4">
         {/* Header */}
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center gap-2">
-            <ServerIcon className={`w-5 h-5 ${isConnected ? 'text-blue-500' : 'text-gray-400'}`} />
-            <div>
-              <h3 className="font-bold text-lg leading-none">{server.name}</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">{server.host}</p>
+        <div className="flex items-center gap-4 mb-4">
+          <div className={`p-2 rounded-lg ${isConnected ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+            <ServerIcon className="w-6 h-6" />
+          </div>
+
+          {/* Server Name & Host */}
+          <div className="min-w-0">
+            <h3 className="font-bold text-lg leading-none">{server.name}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5 font-mono">{server.host}</p>
+          </div>
+
+          {/* System Info (Separator + Info) */}
+          <div className="hidden sm:flex flex-col justify-center ml-4 pl-4 border-l-2 border-border/50 h-8 gap-0.5 min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-xs font-medium text-foreground/80">
+              <span className="truncate">{systemInfo.platform} {systemInfo.platform_release}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground" title={systemInfo.processor}>
+              <Cpu className="size-3 shrink-0" />
+              <span className="truncate max-w-[400px]">{systemInfo.processor || 'Unknown Processor'}</span>
             </div>
           </div>
-          <div className={`text-xs px-2 py-0.5 rounded-full ${isConnected ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+
+          {/* Status Badge */}
+          <div className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ml-auto ${isConnected ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
             {isConnected ? '在线' : '离线'}
           </div>
         </div>

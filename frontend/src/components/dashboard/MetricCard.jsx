@@ -52,31 +52,31 @@ export function MetricCard({
 
                 {percentage !== undefined && (
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                        <div className="relative size-12">
-                            <svg className="size-12 -rotate-90" viewBox="0 0 48 48">
+                        <div className="relative size-20">
+                            <svg className="size-20 -rotate-90" viewBox="0 0 100 100">
                                 <circle
-                                    cx="24"
-                                    cy="24"
-                                    r="18"
+                                    cx="50"
+                                    cy="50"
+                                    r="40"
                                     fill="none"
                                     className="stroke-muted/20"
-                                    strokeWidth="4"
+                                    strokeWidth="8"
                                 />
                                 <circle
-                                    cx="24"
-                                    cy="24"
-                                    r="18"
+                                    cx="50"
+                                    cy="50"
+                                    r="40"
                                     fill="none"
                                     className={cn(
                                         "transition-all duration-500 ease-out",
                                         ringColor
                                     )}
-                                    strokeWidth="4"
+                                    strokeWidth="8"
                                     strokeLinecap="round"
-                                    strokeDasharray={`${(percentage / 100) * 113.1} 113.1`}
+                                    strokeDasharray={`${(percentage / 100) * 251.2} 251.2`}
                                 />
                             </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-mono font-semibold text-foreground">
+                            <span className="absolute inset-0 flex items-center justify-center text-sm font-mono font-bold text-foreground">
                                 {Math.round(percentage)}%
                             </span>
                         </div>
