@@ -6,6 +6,7 @@ import { useServerStore } from '@/store/useServerStore'
 import { Activity, Clock, Layers, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ResourceChart } from '@/components/dashboard/ResourceChart'
+import api from '@/api'
 
 const Monitor = () => {
     const currentServer = useServerStore(state => state.currentServer)
@@ -16,10 +17,48 @@ const Monitor = () => {
     // Ref to store maxPoints so we can access it in WS callback without reconnecting
     const maxPointsRef = useRef(60)
 
-    // Update maxPoints when duration changes
+    // Calculate hours from duration string
+    const getHours = (d) => {
+        if (d === '1h') return 1
+        if (d === '6h') return 6
+        if (d === '24h') return 24
+        if (d === '7d') return 168
+        return 1
+    }
+
+    // Fetch historical data
+    const fetchHistory = async () => {
+        if (!currentServer) return
+        try {
+            const hours = getHours(duration)
+            // Update max buffer size: hours * 60 minutes
+            maxPointsRef.current = hours * 60
+
+            const res = await api.get(`/api/monitor/${currentServer.id}/history`, {
+                params: { hours }
+            })
+
+            if (res.data) {
+                const history = res.data.map(item => ({
+                    time: dayjs(item.created_at).format(hours > 24 ? 'MM-DD HH:mm' : 'HH:mm'),
+                    cpu: item.cpu_usage,
+                    memory: item.memory_usage,
+                    // Store original timestamp for precise sorting if needed
+                    timestamp: dayjs(item.created_at).valueOf()
+                }))
+                setChartData(history)
+            }
+        } catch (error) {
+            console.error("Failed to fetch history:", error)
+        }
+    }
+
+    // Fetch history when server or duration changes
     useEffect(() => {
-        maxPointsRef.current = duration === '1h' ? 60 : duration === '6h' ? 120 : 144
-    }, [duration])
+        fetchHistory()
+        // Reset maxPoints based on new duration immediately 
+        maxPointsRef.current = getHours(duration) * 60
+    }, [currentServer, duration])
 
     // Fetch real-time system stats and build history
     useEffect(() => {
@@ -51,11 +90,12 @@ const Monitor = () => {
 
                     setCurrentStats({ cpu, memory })
 
-                    const time = dayjs().format('HH:mm:ss')
+                    const now = dayjs()
+                    const time = now.format(getHours(duration) > 24 ? 'MM-DD HH:mm' : 'HH:mm')
 
                     setChartData(prev => {
                         const maxPoints = maxPointsRef.current
-                        const newData = [...prev, { time, cpu, memory }]
+                        const newData = [...prev, { time, cpu, memory, timestamp: now.valueOf() }]
                         return newData.slice(-maxPoints)
                     })
                 } else if (message.type === 'error') {
@@ -80,7 +120,7 @@ const Monitor = () => {
                 ws.close()
             }
         }
-    }, [currentServer])
+    }, [currentServer]) // WebSocket only reconnects if server changes
 
     if (!currentServer) {
         return (
