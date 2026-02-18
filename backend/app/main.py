@@ -57,9 +57,13 @@ def monitor_job():
         for server in servers_list:
             data = monitor_service.collect(server)
             if data:
+                # 防御性编程：只保留数据库支持的字段，防止MonitorService返回额外字段导致崩溃
+                valid_keys = {c.name for c in MonitorRecord.__table__.columns}
+                filtered_data = {k: v for k, v in data.items() if k in valid_keys}
+                
                 record = MonitorRecord(
                     server_id=server.id,
-                    **data
+                    **filtered_data
                 )
                 db.add(record)
                 server.status = "online"
