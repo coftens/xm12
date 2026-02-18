@@ -38,7 +38,7 @@ export default function ServerSwitcher({ className, onSwitch }) {
                     className
                 )}>
                     {/* 状态指示灯 */}
-                    <span className={cn('size-2 rounded-full shrink-0', currentServer ? 'bg-emerald-500' : 'bg-muted-foreground')} />
+                    <div className={cn('status-dot', currentServer ? 'online' : 'offline')} />
                     <Server className="size-3.5 shrink-0 text-muted-foreground" />
                     <span className="max-w-[140px] truncate font-medium">
                         {currentServer ? currentServer.name : '选择服务器'}
@@ -73,8 +73,7 @@ export default function ServerSwitcher({ className, onSwitch }) {
                             onClick={() => handleSelect(server)}
                             className="flex items-center gap-2 cursor-pointer"
                         >
-                            <span className={cn('size-2 rounded-full shrink-0',
-                                currentServer?.id === server.id ? 'bg-emerald-500' : 'bg-muted-foreground/40')} />
+                            <div className={cn('status-dot', currentServer?.id === server.id ? 'online' : 'offline')} />
                             <div className="flex flex-col flex-1 min-w-0">
                                 <span className="truncate font-medium text-sm">{server.name}</span>
                                 <span className="truncate text-xs text-muted-foreground">{server.host}:{server.port}</span>

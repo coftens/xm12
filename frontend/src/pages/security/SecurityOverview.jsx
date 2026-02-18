@@ -122,13 +122,9 @@ export function SecurityOverview() {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-medium truncate">{s.name}</span>
-                                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.status === 'online' ? 'bg-emerald-500' : 'bg-muted-foreground/40'}`} />
+                                                <div className={`status-dot ${s.status === 'online' ? 'online' : 'offline'}`} />
                                             </div>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[10px] text-muted-foreground">CPU {Math.round(s.cpu_usage)}%</span>
-                                                <span className="text-[10px] text-muted-foreground">内存 {Math.round(s.memory_usage)}%</span>
-                                                <span className="text-[10px] text-muted-foreground">磁盘 {Math.round(s.disk_usage)}%</span>
-                                            </div>
+                                            {/* Resource stats removed as per user request */}
                                             {s.issues.length > 0 && (
                                                 <div className="flex gap-1 mt-1 flex-wrap">
                                                     {s.issues.map((issue, i) => (

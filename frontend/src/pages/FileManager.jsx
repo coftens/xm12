@@ -230,7 +230,7 @@ function Sidebar({ currentPath, onNavigate, server }) {
   return (
     <div className="flex h-full w-48 shrink-0 flex-col border-r border-border bg-card">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2 shrink-0">
-        <div className="size-2 rounded-full bg-emerald-500 shrink-0" />
+        <div className="status-dot online bg-emerald-500" />
         <span className="truncate text-xs font-medium">{server?.name || '服务器'}</span>
         <span className="ml-auto shrink-0 rounded-sm bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">已连接</span>
       </div>

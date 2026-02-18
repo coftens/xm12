@@ -167,7 +167,8 @@ const ServerMonitorCard = ({ server }) => {
           </div>
 
           {/* Status Badge */}
-          <div className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ml-auto ${isConnected ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+          <div className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ml-auto flex items-center gap-1.5 ${isConnected ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+            {isConnected && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-breathe shadow-[0_0_8px_rgba(59,130,246,0.6)]" />}
             {isConnected ? '在线' : '离线'}
           </div>
         </div>

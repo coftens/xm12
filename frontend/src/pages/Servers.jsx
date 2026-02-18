@@ -10,7 +10,7 @@ export default function Servers() {
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const navigate = useNavigate()
-  
+
   const { servers, setServers, currentServer, setCurrentServer } = useServerStore()
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function Servers() {
             管理您的所有远程服务器实例
           </p>
         </div>
-        <button 
+        <button
           className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
           onClick={() => setIsDialogOpen(true)}
         >
@@ -90,109 +90,112 @@ export default function Servers() {
                 servers.map((server) => {
                   const isSelected = currentServer?.id === server.id
                   return (
-                  <tr 
-                    key={server.id} 
-                    className={cn(
-                      "border-b border-border transition-colors hover:bg-muted/50 cursor-pointer",
-                      isSelected && "bg-muted/50 border-l-2 border-l-primary"
-                    )}
-                    onClick={() => handleSelectServer(server)}
-                  >
-                    <td className="p-4 align-middle font-medium">
-                      <div className="flex items-center gap-2">
-                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                        {server.name}
-                      </div>
-                    </td>
-                    <td className="p-4 align-middle">
-                      <div className="flex flex-col">
-                        <span>{server.host}</span>
-                        <span className="text-xs text-muted-foreground">Port: {server.port}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 align-middle">
-                      <span className={cn(
-                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                        server.status === 'online' 
-                          ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" 
-                          : server.status === 'unknown'
-                            ? "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20"
-                            : "bg-destructive/10 text-destructive hover:bg-destructive/20"
-                      )}>
-                        {server.status === 'online' ? '在线' : server.status === 'unknown' ? '未知' : '离线'}
-                      </span>
-                    </td>
-                    <td className="p-4 align-middle text-muted-foreground">
-                      {server.description || '-'}
-                    </td>
-                    <td className="p-4 align-middle text-right gap-2 flex justify-end" onClick={(e) => e.stopPropagation()}>
-                      <button 
-                        className="p-2 hover:bg-accent rounded-md text-primary"
-                        title="SSH终端"
-                        onClick={() => {
-                          setCurrentServer(server)
-                          navigate('/terminal')
-                        }}
-                      >
-                        <Terminal className="w-4 h-4" />
-                      </button>
-                      <button 
-                        className="p-2 hover:bg-accent rounded-md text-primary"
-                        title="文件管理"
-                        onClick={() => {
-                          setCurrentServer(server)
-                          navigate('/files')
-                        }}
-                      >
-                        <Files className="w-4 h-4" />
-                      </button>
-                      <button 
-                        className="p-2 hover:bg-accent rounded-md text-primary"
-                        title="资源监控"
-                        onClick={() => {
-                          setCurrentServer(server)
-                          navigate('/monitor')
-                        }}
-                      >
-                        <Activity className="w-4 h-4" />
-                      </button>
-                      <button 
-                        className="p-2 hover:bg-accent rounded-md"
-                        title="测试连接"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const res = await api.post(`/api/servers/${server.id}/test`)
-                            if (res.data.success) {
-                              alert('连接成功')
-                            } else {
-                              alert(`连接失败: ${res.data.message}`)
+                    <tr
+                      key={server.id}
+                      className={cn(
+                        "border-b border-border transition-colors hover:bg-muted/50 cursor-pointer",
+                        isSelected && "bg-muted/50 border-l-2 border-l-primary"
+                      )}
+                      onClick={() => handleSelectServer(server)}
+                    >
+                      <td className="p-4 align-middle font-medium">
+                        <div className="flex items-center gap-2">
+                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                          {server.name}
+                        </div>
+                      </td>
+                      <td className="p-4 align-middle">
+                        <div className="flex flex-col">
+                          <span>{server.host}</span>
+                          <span className="text-xs text-muted-foreground">Port: {server.port}</span>
+                        </div>
+                      </td>
+                      <td className="p-4 align-middle">
+                        <span className={cn(
+                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                          server.status === 'online'
+                            ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
+                            : server.status === 'unknown'
+                              ? "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20"
+                              : "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                        )}>
+
+                          {server.status === 'online' && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-breathe mr-1.5 shadow-[0_0_8px_rgba(34,197,94,0.6)] inline-block" />}
+                          {server.status === 'online' ? '在线' : server.status === 'unknown' ? '未知' : '离线'}
+                        </span>
+                      </td>
+                      <td className="p-4 align-middle text-muted-foreground">
+                        {server.description || '-'}
+                      </td>
+                      <td className="p-4 align-middle text-right gap-2 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="p-2 hover:bg-accent rounded-md text-primary"
+                          title="SSH终端"
+                          onClick={() => {
+                            setCurrentServer(server)
+                            navigate('/terminal')
+                          }}
+                        >
+                          <Terminal className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="p-2 hover:bg-accent rounded-md text-primary"
+                          title="文件管理"
+                          onClick={() => {
+                            setCurrentServer(server)
+                            navigate('/files')
+                          }}
+                        >
+                          <Files className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="p-2 hover:bg-accent rounded-md text-primary"
+                          title="资源监控"
+                          onClick={() => {
+                            setCurrentServer(server)
+                            navigate('/monitor')
+                          }}
+                        >
+                          <Activity className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="p-2 hover:bg-accent rounded-md"
+                          title="测试连接"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              const res = await api.post(`/api/servers/${server.id}/test`)
+                              if (res.data.success) {
+                                alert('连接成功')
+                              } else {
+                                alert(`连接失败: ${res.data.message}`)
+                              }
+                              fetchServers()
+                            } catch (err) {
+                              console.error(err)
+                              alert('请求失败')
                             }
-                            fetchServers()
-                          } catch (err) {
-                            console.error(err)
-                            alert('请求失败')
-                          }
-                        }}
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                      </button>
-                      <button 
-                         className="p-2 hover:bg-accent rounded-md text-destructive"
-                         onClick={() => handleDelete(server.id)}
-                      >
-                        <Trash className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                )})
+                          }}
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="p-2 hover:bg-accent rounded-md text-destructive"
+                          onClick={() => handleDelete(server.id)}
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      <AddServerDialog 
+      <AddServerDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSuccess={() => fetchServers()}

@@ -78,7 +78,7 @@ function SessionTabs({ sessions, activeSessionId, onSessionSelect, onSessionClos
             activeSessionId === session.id ? 'bg-[#1e1e1e] text-foreground border-b-2 border-b-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground')}
           onClick={() => onSessionSelect(session.id)}>
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <Circle className={cn('size-2 flex-shrink-0 fill-current', session.status === 'connected' ? 'text-emerald-500' : 'text-muted-foreground')} />
+            <div className={cn('status-dot', session.status === 'connected' ? 'online' : 'offline')} />
             <TerminalIcon className="size-3 flex-shrink-0" />
             <span className="truncate font-medium">{session.serverName}</span>
           </div>
@@ -229,7 +229,8 @@ function ServerSidebar({ servers, activeServerId, onServerSelect, onNewConnectio
                     className={cn('relative flex size-9 items-center justify-center rounded-md transition-colors',
                       activeServerId === server.id ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground')}>
                     <Server className="size-4" />
-                    <Circle className="absolute right-1 top-1 size-2 fill-current text-emerald-500" />
+
+                    <div className="absolute right-1 top-1 status-dot online bg-emerald-500" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -290,7 +291,7 @@ function ServerSidebar({ servers, activeServerId, onServerSelect, onNewConnectio
                     className={cn('flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors',
                       activeServerId === server.id ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground')}>
                     <div className="mt-1 flex-shrink-0">
-                      <Circle className="size-2 fill-current text-emerald-500" />
+                      <div className="status-dot online bg-emerald-500" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
