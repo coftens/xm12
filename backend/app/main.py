@@ -137,7 +137,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title=settings.APP_NAME,
+    title="服务器远程管理平台",
     version="1.0.0",
     lifespan=lifespan
 )

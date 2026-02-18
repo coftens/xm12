@@ -24,9 +24,9 @@ export default function Login() {
         username,
         password
       })
-      
+
       const { access_token } = res.data
-      
+
       // Store token and user info
       setAuth({ username }, access_token)
       navigate('/dashboard')
@@ -45,7 +45,7 @@ export default function Login() {
           <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground mb-4">
             <LayoutDashboard className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">ServerPanel</h1>
+          <h1 className="text-2xl font-bold tracking-tight">服务器远程管理平台</h1>
           <p className="text-sm text-muted-foreground">服务器远程管理平台</p>
         </div>
 
@@ -57,7 +57,7 @@ export default function Login() {
                   {error}
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="username">
                   用户名

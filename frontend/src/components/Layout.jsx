@@ -37,7 +37,7 @@ export default function Layout() {
       <aside className="w-64 border-r border-border bg-card flex flex-col fixed inset-y-0 z-50">
         <div className="h-14 flex items-center px-6 border-b border-border">
           <LayoutDashboard className="w-6 h-6 mr-2 text-primary" />
-          <span className="font-bold text-lg">ServerPanel</span>
+          <span className="font-bold text-lg">服务器远程管理平台</span>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
