@@ -304,3 +304,52 @@ async def test_connection(
     db.commit()
 
     return {"success": success, "message": message}
+
+
+@router.post("/validate")
+async def validate_server_connection(
+    req: ServerCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """验证服务器连接信息（不保存）"""
+    import paramiko
+    import io
+
+    try:
+        test_client = paramiko.SSHClient()
+        test_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        connect_params = {
+            "hostname": req.host,
+            "port": req.port,
+            "username": req.username,
+            "timeout": 10,  # 测试连接可以短一点
+            "banner_timeout": 15,
+            "look_for_keys": False,
+            "allow_agent": False,
+        }
+        if req.auth_type == "password" and req.password:
+            connect_params["password"] = req.password
+        elif req.auth_type == "key" and req.private_key:
+            key_file = io.StringIO(req.private_key)
+            try:
+                pkey = paramiko.RSAKey.from_private_key(key_file)
+            except paramiko.ssh_exception.SSHException:
+                key_file.seek(0)
+                try:
+                    pkey = paramiko.Ed25519Key.from_private_key(key_file)
+                except Exception:
+                    key_file.seek(0)
+                    pkey = paramiko.ECDSAKey.from_private_key(key_file)
+            connect_params["pkey"] = pkey
+        else:
+            raise HTTPException(status_code=400, detail="请提供密码或私钥")
+
+        test_client.connect(**connect_params)
+        test_client.close()
+        return {"message": "连接测试成功", "success": True}
+    except paramiko.AuthenticationException:
+        raise HTTPException(status_code=400, detail="SSH 认证失败")
+    except paramiko.ssh_exception.NoValidConnectionsError:
+        raise HTTPException(status_code=400, detail=f"无法连接到 {req.host}:{req.port}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"连接失败: {str(e)}")

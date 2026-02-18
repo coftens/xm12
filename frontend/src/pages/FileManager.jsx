@@ -218,12 +218,12 @@ function Toolbar({ currentPath, viewMode, showHidden, canGoBack, canGoForward, h
 
 // ===================== 侧边栏 =====================
 const QUICK_PATHS = [
-  { label: '根目录', path: '/', icon: HardDrive },
-  { label: '主目录', path: '/root', icon: Home },
-  { label: '网站根目录', path: '/www/wwwroot', icon: Folder },
-  { label: '临时目录', path: '/tmp', icon: Folder },
-  { label: '日志目录', path: '/var/log', icon: FileText },
-  { label: '配置目录', path: '/etc', icon: FileCode },
+  { label: 'Root (根目录)', path: '/', icon: HardDrive },
+  { label: 'Home (主目录)', path: '/root', icon: Home },
+  { label: 'Web Root (网站目录)', path: '/www/wwwroot', icon: Folder },
+  { label: 'Temp (临时目录)', path: '/tmp', icon: Folder },
+  { label: 'Logs (日志目录)', path: '/var/log', icon: FileText },
+  { label: 'Config (配置目录)', path: '/etc', icon: FileCode },
 ]
 
 function Sidebar({ currentPath, onNavigate, server }) {

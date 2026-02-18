@@ -25,7 +25,7 @@ export default function AddServerDialog({ isOpen, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    
+
     if (!formData.name.trim()) {
       setError('请输入服务器名称')
       return
@@ -53,7 +53,7 @@ export default function AddServerDialog({ isOpen, onClose, onSuccess }) {
         password: formData.password,
         description: formData.description
       })
-      
+
       if (onSuccess) onSuccess(response.data)
       onClose()
       setFormData({
@@ -168,6 +168,43 @@ export default function AddServerDialog({ isOpen, onClose, onSuccess }) {
           </div>
 
           <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={async () => {
+                if (!formData.host || !formData.username) {
+                  setError('请先填写主机地址和用户名')
+                  return
+                }
+                const btn = document.getElementById('test-btn')
+                const originalText = btn.innerText
+                btn.innerText = '测试中...'
+                btn.disabled = true
+
+                try {
+                  await api.post('/api/servers/validate', {
+                    name: formData.name || 'test',
+                    host: formData.host,
+                    port: formData.port,
+                    username: formData.username,
+                    password: formData.password,
+                    auth_type: 'password', // 简化处理，暂时默认密码认证，如果后续支持密钥需完善
+                    description: formData.description
+                  })
+                  // 可以显示一个临时成功提示，或者设个 state
+                  alert('连接测试成功！')
+                  setError('')
+                } catch (err) {
+                  setError(err.response?.data?.detail || '连接测试失败')
+                } finally {
+                  btn.innerText = originalText
+                  btn.disabled = false
+                }
+              }}
+              id="test-btn"
+              className="px-4 py-2 rounded-md font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
+            >
+              测试连接
+            </button>
             <button
               type="submit"
               disabled={loading}
