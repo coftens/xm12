@@ -13,7 +13,8 @@ venv/
 
 # Node
 node_modules/
-dist/
+# dist/  <-- Commented out to allow dist folder tracking, or use specific ignore
+!frontend/dist/
 
 # Logs
 *.log
