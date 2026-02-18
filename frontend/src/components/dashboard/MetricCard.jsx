@@ -24,7 +24,7 @@ export function MetricCard({
                 <div className="flex-1 space-y-1 min-w-0">
                     <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
                     <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-bold font-mono tracking-tight text-foreground truncate">
+                        <span className="text-xl font-bold font-mono tracking-tight text-foreground">
                             {value}
                         </span>
                         {unit && (
