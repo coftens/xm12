@@ -236,3 +236,96 @@ nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
 - ✅ **本地（Windows）**：编译 → 强制添加 dist → 提交 → 推送
 - ✅ **服务器（Linux）**：只拉取代码，不编译不提交！
 - ⚠️ **每次修改前端代码后，本地必须执行 `git add -f frontend/dist`！**
+
+---
+
+## 🗄️ 数据库信息
+
+| 项目 | 内容 |
+|------|------|
+| **类型** | SQLite |
+| **文件路径** | `/www/wwwroot/fwq/backend/data/server_mgmt.db` |
+| **默认账号** | admin / admin123 |
+
+> ⚠️ **请定期备份数据库文件！删了就没了！**
+
+```bash
+# 备份命令
+cp /www/wwwroot/fwq/backend/data/server_mgmt.db /backup/server_mgmt_$(date +%Y%m%d).db
+```
+
+---
+
+## 🚀 正确的后端重启方法（已验证）
+
+> ⚠️ 必须 `cd` 进入后端目录再启动，否则数据库路径解析失败！
+
+```bash
+cd /www/wwwroot/fwq/backend
+
+# 拉取最新代码
+git pull
+
+# 杀掉旧进程（一键）
+kill $(ps -ef | grep uvicorn | grep -v grep | awk '{print $2}')
+
+# 用 venv 启动（不能用系统 python3！）
+nohup ./venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 > output.log 2>&1 &
+
+# 验证启动成功
+sleep 3 && curl -s http://127.0.0.1:8000/api/health
+```
+
+### 数据库丢失/首次部署时初始化：
+
+```bash
+cd /www/wwwroot/fwq/backend
+mkdir -p data
+
+./venv/bin/python3 -c "
+from app.database import init_db, SessionLocal
+from app.models import User
+from app.auth import get_password_hash
+
+init_db()
+print('建表完成')
+
+db = SessionLocal()
+admin = db.query(User).filter(User.username == 'admin').first()
+if not admin:
+    admin = User(username='admin', hashed_password=get_password_hash('admin123'), role='admin')
+    db.add(admin)
+    db.commit()
+    print('admin 账号已创建')
+db.close()
+"
+```
+
+---
+
+## 🚨 事故复盘（2026-02-19）
+
+### 事故原因
+
+修改后端代码时，将新字段（`platform`, `processor`）加入了 `MonitorData` Pydantic Schema，但**未同步更新数据库模型**，导致连锁崩溃：
+
+1. `schemas.py` 的 `MonitorData` 新增了 `platform`、`processor` 字段
+2. `/api/monitor/history` 接口用 `response_model=List[MonitorData]` 从数据库读取记录
+3. 数据库表 `monitor_records` 没有这些字段，Pydantic ORM 模式读取时报错
+4. 后端崩溃 → 500 / 502
+
+### 解决方案
+
+- 回滚 `schemas.py`，移除多余字段
+- 在 `main.py` 中对写入数据库的数据做**防御性字段过滤**（只保留数据库支持的字段）
+- 使用正确的 venv uvicorn 启动方式
+- 重新创建 `data/` 目录并初始化数据库
+
+### ⚠️ 避坑指南
+
+| 场景 | 正确做法 | 错误做法 |
+|------|---------|---------|
+| 启动后端 | `cd /www/wwwroot/fwq/backend` 后再启动 | 直接用绝对路径启动（数据库路径会错） |
+| 运行 Python | `./venv/bin/uvicorn` 或 `./venv/bin/python3` | `python3`（系统 Python 没有依赖） |
+| 修改 Schema | 同步修改 `models.py` 并做数据库迁移 | 只改 Schema 不改数据库模型 |
+| 更新代码 | `git pull` + 重启服务 | 只 `git pull` 不重启（旧代码还在内存里） |
