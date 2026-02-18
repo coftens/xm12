@@ -121,7 +121,9 @@
   }
 
   .status-dot.online {
-    @apply bg-emerald-500 shadow-[0_0_8px_rgba(16, 185, 129, 0.6)] animate-breathe;
+    @apply bg-emerald-500;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+    animation: breathe 2s infinite ease-in-out;
   }
 
   .status-dot.offline {
