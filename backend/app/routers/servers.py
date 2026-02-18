@@ -121,7 +121,51 @@ async def create_server(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """添加服务器"""
+    """添加服务器（自动测试 SSH 连通性）"""
+    import paramiko
+    import io
+    from app.crypto import decrypt_credential
+
+    # ---- SSH 连通性测试（同时写入 known_hosts）----
+    try:
+        test_client = paramiko.SSHClient()
+        test_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        connect_params = {
+            "hostname": req.host,
+            "port": req.port,
+            "username": req.username,
+            "timeout": 15,
+            "banner_timeout": 30,
+            "look_for_keys": False,
+            "allow_agent": False,
+        }
+        if req.auth_type == "password" and req.password:
+            connect_params["password"] = req.password
+        elif req.auth_type == "key" and req.private_key:
+            key_file = io.StringIO(req.private_key)
+            try:
+                pkey = paramiko.RSAKey.from_private_key(key_file)
+            except paramiko.ssh_exception.SSHException:
+                key_file.seek(0)
+                try:
+                    pkey = paramiko.Ed25519Key.from_private_key(key_file)
+                except Exception:
+                    key_file.seek(0)
+                    pkey = paramiko.ECDSAKey.from_private_key(key_file)
+            connect_params["pkey"] = pkey
+        else:
+            raise HTTPException(status_code=400, detail="请提供密码或私钥")
+
+        test_client.connect(**connect_params)
+        test_client.close()
+    except paramiko.AuthenticationException:
+        raise HTTPException(status_code=400, detail="SSH 认证失败，请检查用户名和密码/密钥")
+    except paramiko.ssh_exception.NoValidConnectionsError:
+        raise HTTPException(status_code=400, detail=f"无法连接到 {req.host}:{req.port}，请检查主机地址和端口")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"SSH 连接测试失败: {str(e)}")
+
+    # ---- 保存服务器信息 ----
     server = Server(
         name=req.name,
         host=req.host,
