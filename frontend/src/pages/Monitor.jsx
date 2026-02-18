@@ -5,7 +5,7 @@ import dayjs from 'dayjs'
 import { useServerStore } from '@/store/useServerStore'
 import { Activity, Clock, Layers, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { CpuMemoryChart } from '@/components/dashboard/CpuMemoryChart'
+import { ResourceChart } from '@/components/dashboard/ResourceChart'
 
 const Monitor = () => {
     const currentServer = useServerStore(state => state.currentServer)
@@ -114,9 +114,26 @@ const Monitor = () => {
                 </div>
             </div>
 
-            <div className="grid gap-6">
+            <div className="grid gap-6 md:grid-cols-2">
                 <div className="col-span-1">
-                    <CpuMemoryChart data={chartData} />
+                    <ResourceChart
+                        title="CPU 使用率趋势"
+                        data={chartData}
+                        dataKey="cpu"
+                        colorVar="--chart-1"
+                        icon={Zap}
+                        iconColorClass="text-orange-500"
+                    />
+                </div>
+                <div className="col-span-1">
+                    <ResourceChart
+                        title="内存使用率趋势"
+                        data={chartData}
+                        dataKey="memory"
+                        colorVar="--chart-2"
+                        icon={Layers}
+                        iconColorClass="text-purple-500"
+                    />
                 </div>
             </div>
 
