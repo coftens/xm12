@@ -25,7 +25,7 @@ from app.auth import get_password_hash
 from app.models import User, Server, MonitorRecord, AlertRule, AlertLog
 
 # 路由导入
-from app.routers import auth, servers, ssh, monitor, batch, logs, files, system, monitor_ws
+from app.routers import auth, servers, ssh, monitor, batch, logs, files, system, monitor_ws, security
 
 
 def create_default_admin():
@@ -161,6 +161,7 @@ app.include_router(batch.router)
 app.include_router(logs.router)
 app.include_router(files.router)
 app.include_router(system.router)
+app.include_router(security.router)
 
 
 @app.get("/api/health")
