@@ -30,6 +30,8 @@ echo "===NETWORK==="
 cat /proc/net/dev | grep -E "eth0|ens|eno|enp"
 echo "===UPTIME==="
 cat /proc/uptime
+echo "===DISK_IO==="
+cat /proc/diskstats | grep -E 'sda|vda|xvda|nvme0n1' | head -n 1 | awk '{print $6,$10}'
 """
             stdout, stderr = self.ssh_service.execute_command(server, commands, timeout=15)
             return self._parse_output(stdout)
@@ -53,7 +55,9 @@ cat /proc/uptime
             "load_1": 0,
             "load_5": 0,
             "load_15": 0,
-            "uptime": 0
+            "uptime": 0,
+            "disk_read_sectors": 0,
+            "disk_write_sectors": 0
         }
 
         sections = output.split("===")
@@ -121,6 +125,14 @@ cat /proc/uptime
                 try:
                     uptime_str = sections[i + 1].strip().split()[0]
                     data["uptime"] = float(uptime_str)
+                except (ValueError, IndexError):
+                    pass
+
+            elif section == "DISK_IO" and i + 1 < len(sections):
+                try:
+                    parts = sections[i + 1].strip().split()
+                    data["disk_read_sectors"] = int(parts[0])
+                    data["disk_write_sectors"] = int(parts[1])
                 except (ValueError, IndexError):
                     pass
 

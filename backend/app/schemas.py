@@ -112,6 +112,8 @@ class MonitorData(BaseModel):
     load_1: float
     load_5: float
     load_15: float
+    disk_read_sectors: int = 0
+    disk_write_sectors: int = 0
     created_at: Optional[datetime] = None
 
     class Config:
