@@ -7,6 +7,7 @@ import { Activity, Clock, Layers, Zap, Network, HardDrive } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ResourceChart } from '@/components/dashboard/ResourceChart'
 import { DualResourceChart } from '@/components/dashboard/DualResourceChart'
+import ServerSwitcher from '@/components/ServerSwitcher'
 
 const Monitor = () => {
     const currentServer = useServerStore(state => state.currentServer)
@@ -145,8 +146,9 @@ const Monitor = () => {
                     <Activity className="mx-auto h-12 w-12 text-muted-foreground" />
                     <h2 className="text-xl font-semibold">请先选择服务器</h2>
                     <p className="text-muted-foreground text-sm max-w-sm">
-                        在左侧菜单选择一台服务器以查看其实时监控数据
+                        选择一台服务器以查看其实时监控数据
                     </p>
+                    <ServerSwitcher />
                 </div>
             </div>
         )
@@ -158,9 +160,10 @@ const Monitor = () => {
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">资源监控</h2>
                     <p className="text-muted-foreground text-sm">
-                        {currentServer.name} ({currentServer.host}) - 实时性能指标 (历史功能已移除)
+                        {currentServer.name} ({currentServer.host}) - 实时性能指标
                     </p>
                 </div>
+                <ServerSwitcher />
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">

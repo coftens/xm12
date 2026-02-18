@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import { useServerStore } from '@/store/useServerStore'
 import { Button } from '@/components/ui/button'
+import ServerSwitcher from '@/components/ServerSwitcher'
 import { AlertCircle, Terminal as TerminalIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -144,30 +145,28 @@ export default function SSHConnection() {
           <TerminalIcon className="h-10 w-10 text-muted-foreground" />
         </div>
         <h2 className="text-xl font-semibold">未选择服务器</h2>
-        <p className="text-muted-foreground">请在左侧菜单或服务器列表中选择一台服务器以连接 SSH。</p>
-        <Button variant="outline" asChild>
-          <a href="/servers">去选择服务器</a>
-        </Button>
+        <p className="text-muted-foreground">请选择一台服务器以连接 SSH 终端。</p>
+        <ServerSwitcher />
       </div>
     )
   }
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <TerminalIcon className="w-5 h-5" /> {currentServer.name} ({currentServer.host})
-          </h2>
-          <span className={cn("text-xs px-2 py-0.5 rounded-full", isConnected ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <TerminalIcon className="w-5 h-5 shrink-0" />
+          <h2 className="text-lg font-semibold truncate">{currentServer.name}</h2>
+          <span className={cn("shrink-0 text-xs px-2 py-0.5 rounded-full", isConnected ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
             {isConnected ? '已连接' : '已断开'}
           </span>
         </div>
-        {!isConnected && (
-          <Button size="sm" onClick={handleReconnect} variant="outline">
-            重连
-          </Button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          <ServerSwitcher onSwitch={() => { /* Terminal useEffect will re-run on currentServer change */ }} />
+          {!isConnected && (
+            <Button size="sm" onClick={handleReconnect} variant="outline">重连</Button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 rounded-lg border bg-black p-1 overflow-hidden relative shadow-inner">

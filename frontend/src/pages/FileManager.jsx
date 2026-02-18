@@ -11,6 +11,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
   DropdownMenuTrigger, DropdownMenuLabel
 } from '@/components/ui/dropdown-menu'
+import ServerSwitcher from '@/components/ServerSwitcher'
 import { cn } from '@/lib/utils'
 import api from '@/api'
 import {
@@ -680,6 +681,7 @@ export default function FileManager() {
       <div className="flex h-[400px] flex-col items-center justify-center text-center space-y-4">
         <div className="bg-muted p-6 rounded-full"><Folder className="w-12 h-12 text-muted-foreground" /></div>
         <div><h2 className="text-2xl font-bold">请选择服务器</h2><p className="text-muted-foreground mt-2">需要连接到服务器才能管理文件</p></div>
+        <ServerSwitcher />
       </div>
     )
   }
