@@ -247,7 +247,7 @@ export default function Dashboard() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3">
           {servers.map(server => (
             <ServerMonitorCard key={server.id} server={server} />
           ))}
