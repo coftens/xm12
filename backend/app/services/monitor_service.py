@@ -135,7 +135,8 @@ cat /proc/uptime
                 "df -BG --total | awk '/total/{print $2,$3}';"
                 "cat /proc/loadavg | awk '{print $1,$2,$3}';"
                 "cat /proc/uptime | awk '{print $1}';"
-                "grep -c ^processor /proc/cpuinfo"
+                "grep -c ^processor /proc/cpuinfo;"
+                "cat /proc/diskstats | grep -E 'sda|vda|xvda|nvme0n1' | head -n 1 | awk '{print $6,$10}'"
             )
             stdout, _ = self.ssh_service.execute_command(server, cmd, timeout=10)
             lines = stdout.strip().split('\n')
@@ -144,7 +145,7 @@ cat /proc/uptime
                 "cpu_usage": 0, "cpu_count": 0, "memory_total": 0, "memory_used": 0, "memory_usage": 0,
                 "disk_total": 0, "disk_used": 0, "disk_usage": 0,
                 "net_in": 0, "net_out": 0, "load_1": 0, "load_5": 0, "load_15": 0,
-                "uptime": 0
+                "uptime": 0, "disk_read_sectors": 0, "disk_write_sectors": 0
             }
 
             if len(lines) >= 1:
@@ -185,6 +186,13 @@ cat /proc/uptime
                 try:
                     data["cpu_count"] = int(lines[5].strip())
                 except ValueError:
+                    pass
+            if len(lines) >= 7:
+                try:
+                    parts = lines[6].split()
+                    data["disk_read_sectors"] = int(parts[0])
+                    data["disk_write_sectors"] = int(parts[1])
+                except (ValueError, IndexError):
                     pass
 
             return data

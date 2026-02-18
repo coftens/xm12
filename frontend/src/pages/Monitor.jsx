@@ -1,82 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import dayjs from 'dayjs'
 import { useServerStore } from '@/store/useServerStore'
-import { Activity, Clock, Layers, Zap } from 'lucide-react'
+import { Activity, Clock, Layers, Zap, Network, HardDrive } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ResourceChart } from '@/components/dashboard/ResourceChart'
-import api from '@/api'
+import { DualResourceChart } from '@/components/dashboard/DualResourceChart'
 
 const Monitor = () => {
     const currentServer = useServerStore(state => state.currentServer)
-    const [duration, setDuration] = useState('1h') // 1h, 6h, 24h
     const [chartData, setChartData] = useState([])
-    const [currentStats, setCurrentStats] = useState({ cpu: 0, memory: 0 })
+    const [currentStats, setCurrentStats] = useState({
+        cpu: 0,
+        memory: 0,
+        net_in: 0,
+        net_out: 0,
+        disk_read: 0,
+        disk_write: 0
+    })
 
-    // Ref to store maxPoints so we can access it in WS callback without reconnecting
-    const maxPointsRef = useRef(60)
+    // Previous data for rate calculation
+    const prevStatsRef = useRef(null)
+    const maxPoints = 60
 
-    // Calculate hours from duration string
-    const getHours = (d) => {
-        if (d === '1h') return 1
-        if (d === '6h') return 6
-        if (d === '24h') return 24
-        if (d === '7d') return 168
-        return 1
-    }
-
-    // Fetch historical data
-    const fetchHistory = async () => {
-        if (!currentServer) return
-        try {
-            const hours = getHours(duration)
-            // Update max buffer size: hours * 60 minutes
-            maxPointsRef.current = hours * 60
-
-            const res = await api.get(`/api/monitor/${currentServer.id}/history`, {
-                params: { hours }
-            })
-
-            if (res.data) {
-                const history = res.data.map(item => ({
-                    time: dayjs(item.created_at).format(hours > 24 ? 'MM-DD HH:mm' : 'HH:mm'),
-                    cpu: item.cpu_usage,
-                    memory: item.memory_usage,
-                    // Store original timestamp for precise sorting if needed
-                    timestamp: dayjs(item.created_at).valueOf()
-                }))
-                setChartData(history)
-            }
-        } catch (error) {
-            console.error("Failed to fetch history:", error)
-        }
-    }
-
-    // Fetch history when server or duration changes
-    useEffect(() => {
-        fetchHistory()
-        // Reset maxPoints based on new duration immediately 
-        maxPointsRef.current = getHours(duration) * 60
-    }, [currentServer, duration])
-
-    // Fetch real-time system stats and build history
+    // WebSocket for real-time updates
     useEffect(() => {
         if (!currentServer) return
 
-        const maxPoints = duration === '1h' ? 60 : duration === '6h' ? 120 : 144
         const token = localStorage.getItem('token')
         if (!token) return
 
-        // 构建 WebSocket URL（使用 location.host 包含端口，通过 Nginx 代理）
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
         const wsUrl = `${protocol}//${window.location.host}/api/ws/monitor/${currentServer.id}?token=${token}`
 
-        // 创建 WebSocket 连接
         const ws = new WebSocket(wsUrl)
 
         ws.onopen = () => {
             console.log('Monitor WebSocket 连接已建立')
+            // Reset chart and prev stats on new connection/server change
+            setChartData([])
+            prevStatsRef.current = null
         }
 
         ws.onmessage = (event) => {
@@ -85,18 +49,70 @@ const Monitor = () => {
 
                 if (message.type === 'monitor_data') {
                     const data = message.data
-                    const cpu = data.cpu_usage || 0
-                    const memory = data.memory_usage || 0
-
-                    setCurrentStats({ cpu, memory })
-
                     const now = dayjs()
-                    const time = now.format(getHours(duration) > 24 ? 'MM-DD HH:mm' : 'HH:mm')
+                    const timestamp = now.valueOf()
+                    const time = now.format('HH:mm:ss')
+
+                    const current = {
+                        timestamp,
+                        cpu: data.cpu_usage || 0,
+                        memory: data.memory_usage || 0,
+                        net_in_total: data.net_in || 0, // KB (Cumulative)
+                        net_out_total: data.net_out || 0, // KB (Cumulative)
+                        disk_read_total: data.disk_read_sectors || 0, // sectors (Cumulative)
+                        disk_write_total: data.disk_write_sectors || 0, // sectors (Cumulative)
+                    }
+
+                    let net_in_rate = 0
+                    let net_out_rate = 0
+                    let disk_read_rate = 0
+                    let disk_write_rate = 0
+
+                    if (prevStatsRef.current) {
+                        const timeDiff = (timestamp - prevStatsRef.current.timestamp) / 1000 // seconds
+
+                        if (timeDiff > 0) {
+                            // Net (KB)
+                            // Handle wrap-around or reset? Usually counters increase. 
+                            // If diff < 0, maybe restart, treat as 0.
+                            const netInDiff = current.net_in_total - prevStatsRef.current.net_in_total
+                            const netOutDiff = current.net_out_total - prevStatsRef.current.net_out_total
+                            net_in_rate = netInDiff >= 0 ? parseFloat((netInDiff / timeDiff).toFixed(1)) : 0
+                            net_out_rate = netOutDiff >= 0 ? parseFloat((netOutDiff / timeDiff).toFixed(1)) : 0
+
+                            // Disk (Sectors -> KB) 1 sector = 512 bytes = 0.5 KB
+                            const diskReadDiff = (current.disk_read_total - prevStatsRef.current.disk_read_total) * 0.5
+                            const diskWriteDiff = (current.disk_write_total - prevStatsRef.current.disk_write_total) * 0.5
+                            disk_read_rate = diskReadDiff >= 0 ? parseFloat((diskReadDiff / timeDiff).toFixed(1)) : 0
+                            disk_write_rate = diskWriteDiff >= 0 ? parseFloat((diskWriteDiff / timeDiff).toFixed(1)) : 0
+                        }
+                    }
+
+                    prevStatsRef.current = current
+
+                    setCurrentStats({
+                        cpu: current.cpu,
+                        memory: current.memory,
+                        net_in: net_in_rate,
+                        net_out: net_out_rate,
+                        disk_read: disk_read_rate,
+                        disk_write: disk_write_rate
+                    })
 
                     setChartData(prev => {
-                        const maxPoints = maxPointsRef.current
-                        const newData = [...prev, { time, cpu, memory, timestamp: now.valueOf() }]
-                        return newData.slice(-maxPoints)
+                        const newData = [...prev, {
+                            time,
+                            cpu: current.cpu,
+                            memory: current.memory,
+                            net_in: net_in_rate,
+                            net_out: net_out_rate,
+                            disk_read: disk_read_rate,
+                            disk_write: disk_write_rate
+                        }]
+                        if (newData.length > maxPoints) {
+                            return newData.slice(newData.length - maxPoints)
+                        }
+                        return newData
                     })
                 } else if (message.type === 'error') {
                     console.error('WebSocket 错误:', message.message)
@@ -120,7 +136,7 @@ const Monitor = () => {
                 ws.close()
             }
         }
-    }, [currentServer]) // WebSocket only reconnects if server changes
+    }, [currentServer])
 
     if (!currentServer) {
         return (
@@ -129,7 +145,7 @@ const Monitor = () => {
                     <Activity className="mx-auto h-12 w-12 text-muted-foreground" />
                     <h2 className="text-xl font-semibold">请先选择服务器</h2>
                     <p className="text-muted-foreground text-sm max-w-sm">
-                        在左侧菜单选择一台服务器以查看其历史监控数据
+                        在左侧菜单选择一台服务器以查看其实时监控数据
                     </p>
                 </div>
             </div>
@@ -140,33 +156,17 @@ const Monitor = () => {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">资源监控历史</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">资源监控</h2>
                     <p className="text-muted-foreground text-sm">
-                        {currentServer.name} ({currentServer.host}) - 实时性能指标回顾
+                        {currentServer.name} ({currentServer.host}) - 实时性能指标 (历史功能已移除)
                     </p>
-                </div>
-                <div className="flex items-center space-x-2 bg-muted p-1 rounded-lg">
-                    {['1h', '6h', '24h', '7d'].map((d) => (
-                        <button
-                            key={d}
-                            onClick={() => setDuration(d)}
-                            className={cn(
-                                "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
-                                duration === d
-                                    ? "bg-background text-foreground shadow-sm"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                            )}
-                        >
-                            最近 {d}
-                        </button>
-                    ))}
                 </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
                 <div className="col-span-1">
                     <ResourceChart
-                        title="CPU 使用率趋势"
+                        title="CPU 使用率 (%)"
                         data={chartData}
                         dataKey="cpu"
                         colorVar="--chart-1"
@@ -176,7 +176,7 @@ const Monitor = () => {
                 </div>
                 <div className="col-span-1">
                     <ResourceChart
-                        title="内存使用率趋势"
+                        title="内存使用率 (%)"
                         data={chartData}
                         dataKey="memory"
                         colorVar="--chart-2"
@@ -186,27 +186,37 @@ const Monitor = () => {
                 </div>
             </div>
 
-            {/* Additional Metrics Placeholder */}
             <div className="grid gap-6 md:grid-cols-2">
-                <Card className="col-span-1 border-dashed">
-                    <CardContent className="h-[200px] flex items-center justify-center text-muted-foreground">
-                        <div className="text-center">
-                            <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <span>网络流量趋势 (开发中)</span>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="col-span-1 border-dashed">
-                    <CardContent className="h-[200px] flex items-center justify-center text-muted-foreground">
-                        <div className="text-center">
-                            <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <span>磁盘 IO 趋势 (开发中)</span>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="col-span-1">
+                    <DualResourceChart
+                        title="网络流量 (KB/s)"
+                        data={chartData}
+                        key1="net_in"
+                        label1="下行"
+                        key2="net_out"
+                        label2="上行"
+                        colorVar1="--chart-3"
+                        colorVar2="--chart-4"
+                        icon={Network}
+                        iconColorClass="text-blue-500"
+                    />
+                </div>
+                <div className="col-span-1">
+                    <DualResourceChart
+                        title="磁盘 IO (KB/s)"
+                        data={chartData}
+                        key1="disk_read"
+                        label1="读取"
+                        key2="disk_write"
+                        label2="写入"
+                        colorVar1="--chart-5"
+                        colorVar2="--chart-2"
+                        icon={HardDrive}
+                        iconColorClass="text-green-500"
+                    />
+                </div>
             </div>
         </div>
     )
 }
-
 export default Monitor
