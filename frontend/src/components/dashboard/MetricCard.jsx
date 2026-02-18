@@ -10,76 +10,73 @@ export function MetricCard({
     percentage,
 }) {
     // Dynamic Status Color Logic
-    let statusColor = "text-blue-500";
-    let statusBg = "bg-blue-500/10";
-    let strokeColor = "stroke-blue-500";
+    let statusColor = "text-primary";
+    let statusBg = "bg-primary/15";
+    let ringColor = "stroke-primary";
 
     if (percentage !== undefined) {
         if (percentage >= 90) {
-            statusColor = "text-red-500";
-            statusBg = "bg-red-500/10";
-            strokeColor = "stroke-red-500";
+            statusColor = "text-destructive";
+            statusBg = "bg-destructive/15";
+            ringColor = "stroke-destructive";
         } else if (percentage >= 80) {
             statusColor = "text-yellow-500";
-            statusBg = "bg-yellow-500/10";
-            strokeColor = "stroke-yellow-500";
+            statusBg = "bg-yellow-500/15";
+            ringColor = "stroke-yellow-500";
         }
     }
 
     return (
-        <Card className="border-border/50 relative overflow-hidden bg-card/50">
-            <CardContent className="flex items-center justify-between p-4 gap-3">
-                {/* Left Side: Icon & Info */}
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div
-                        className={cn(
-                            "flex size-10 shrink-0 items-center justify-center rounded-md transition-colors duration-300",
-                            statusBg
+        <Card className="border-border/50 relative overflow-hidden">
+            <CardContent className="flex items-center gap-4 py-4">
+                <div
+                    className={cn(
+                        "flex size-11 shrink-0 items-center justify-center rounded-lg transition-colors duration-300",
+                        statusBg
+                    )}
+                >
+                    {React.cloneElement(icon, { className: cn("size-5 transition-colors duration-300", statusColor) })}
+                </div>
+
+                <div className="flex-1 space-y-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-bold font-mono tracking-tight text-foreground truncate">
+                            {value}
+                        </span>
+                        {unit && (
+                            <span className="text-sm text-muted-foreground">{unit}</span>
                         )}
-                    >
-                        {React.cloneElement(icon, { className: cn("size-5 transition-colors duration-300", statusColor) })}
-                    </div>
-                    <div className="space-y-0.5 min-w-0 overflow-hidden">
-                        <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-xl font-bold font-mono tracking-tight text-foreground whitespace-nowrap">
-                                {value}
-                            </span>
-                            {unit && (
-                                <span className="text-xs text-muted-foreground">{unit}</span>
-                            )}
-                        </div>
                     </div>
                 </div>
 
-                {/* Right Side: Progress Ring */}
                 {percentage !== undefined && (
-                    <div className="flex flex-col items-center justify-center shrink-0">
-                        <div className="relative size-10">
-                            <svg className="size-10 -rotate-90" viewBox="0 0 40 40">
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                        <div className="relative size-12">
+                            <svg className="size-12 -rotate-90" viewBox="0 0 48 48">
                                 <circle
-                                    cx="20"
-                                    cy="20"
-                                    r="16"
+                                    cx="24"
+                                    cy="24"
+                                    r="18"
                                     fill="none"
                                     className="stroke-muted/20"
-                                    strokeWidth="3"
+                                    strokeWidth="4"
                                 />
                                 <circle
-                                    cx="20"
-                                    cy="20"
-                                    r="16"
+                                    cx="24"
+                                    cy="24"
+                                    r="18"
                                     fill="none"
                                     className={cn(
                                         "transition-all duration-500 ease-out",
-                                        strokeColor
+                                        ringColor
                                     )}
-                                    strokeWidth="3"
+                                    strokeWidth="4"
                                     strokeLinecap="round"
-                                    strokeDasharray={`${(percentage / 100) * 100.5} 100.5`}
+                                    strokeDasharray={`${(percentage / 100) * 113.1} 113.1`}
                                 />
                             </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-mono font-bold text-foreground">
+                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-mono font-semibold text-foreground">
                                 {Math.round(percentage)}%
                             </span>
                         </div>
