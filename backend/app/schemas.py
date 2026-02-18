@@ -114,6 +114,9 @@ class MonitorData(BaseModel):
     load_15: float
     disk_read_sectors: int = 0
     disk_write_sectors: int = 0
+    platform: Optional[str] = None
+    platform_release: Optional[str] = None
+    processor: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:

@@ -32,6 +32,9 @@ echo "===UPTIME==="
 cat /proc/uptime
 echo "===DISK_IO==="
 cat /proc/diskstats | grep -E 'sda|vda|xvda|nvme0n1' | head -n 1 | awk '{print $6,$10}'
+echo "===SYSTEM==="
+cat /etc/os-release | grep -E "^ID=|^VERSION_ID="
+grep "model name" /proc/cpuinfo | head -n 1 | awk -F: '{print $2}'
 """
             stdout, stderr = self.ssh_service.execute_command(server, commands, timeout=15)
             return self._parse_output(stdout)
@@ -57,7 +60,10 @@ cat /proc/diskstats | grep -E 'sda|vda|xvda|nvme0n1' | head -n 1 | awk '{print $
             "load_15": 0,
             "uptime": 0,
             "disk_read_sectors": 0,
-            "disk_write_sectors": 0
+            "disk_write_sectors": 0,
+            "platform": "Unknown",
+            "platform_release": "",
+            "processor": "Unknown Processor"
         }
 
         sections = output.split("===")
@@ -133,6 +139,19 @@ cat /proc/diskstats | grep -E 'sda|vda|xvda|nvme0n1' | head -n 1 | awk '{print $
                     parts = sections[i + 1].strip().split()
                     data["disk_read_sectors"] = int(parts[0])
                     data["disk_write_sectors"] = int(parts[1])
+                except (ValueError, IndexError):
+                    pass
+            
+            elif section == "SYSTEM" and i + 1 < len(sections):
+                try:
+                    lines = sections[i + 1].strip().split('\n')
+                    for line in lines:
+                        if line.startswith("ID="):
+                            data["platform"] = line.split("=")[1].strip('"')
+                        elif line.startswith("VERSION_ID="):
+                            data["platform_release"] = line.split("=")[1].strip('"')
+                        elif "Intel" in line or "AMD" in line or "CPU" in line:
+                             data["processor"] = line.strip()
                 except (ValueError, IndexError):
                     pass
 
