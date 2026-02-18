@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import dayjs from 'dayjs'
@@ -12,6 +12,14 @@ const Monitor = () => {
     const [duration, setDuration] = useState('1h') // 1h, 6h, 24h
     const [chartData, setChartData] = useState([])
     const [currentStats, setCurrentStats] = useState({ cpu: 0, memory: 0 })
+
+    // Ref to store maxPoints so we can access it in WS callback without reconnecting
+    const maxPointsRef = useRef(60)
+
+    // Update maxPoints when duration changes
+    useEffect(() => {
+        maxPointsRef.current = duration === '1h' ? 60 : duration === '6h' ? 120 : 144
+    }, [duration])
 
     // Fetch real-time system stats and build history
     useEffect(() => {
@@ -46,6 +54,7 @@ const Monitor = () => {
                     const time = dayjs().format('HH:mm:ss')
 
                     setChartData(prev => {
+                        const maxPoints = maxPointsRef.current
                         const newData = [...prev, { time, cpu, memory }]
                         return newData.slice(-maxPoints)
                     })
@@ -71,7 +80,7 @@ const Monitor = () => {
                 ws.close()
             }
         }
-    }, [currentServer, duration])
+    }, [currentServer])
 
     if (!currentServer) {
         return (
