@@ -31,7 +31,84 @@
 
 ---
 
-## 🖥️ 第一部分：本地开发环境（Windows 电脑）
+## �️ 新服务器手动部署 (详细步骤)
+
+如果你更喜欢手动控制每个步骤，请按以下顺序执行：
+
+### 1. 安装基础依赖
+```bash
+# CentOS
+yum install -y git python3 python3-pip python3-devel gcc nginx
+
+# Debian/Ubuntu
+apt-get update
+apt-get install -y git python3 python3-pip python3-venv nginx
+```
+
+### 2. 下载代码
+```bash
+mkdir -p /www/wwwroot
+cd /www/wwwroot
+git clone <你的Git仓库地址> fwq
+cd fwq
+```
+
+### 3. 配置后端
+```bash
+cd backend
+
+# 创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 初始化数据库 (可选，第一次运行会自动创建)
+# python3 -c "from app.database import init_db; init_db()"
+
+# 退出虚拟环境
+deactivate
+```
+
+### 4. 设置 Systemd 服务 (开机自启)
+创建文件 `/etc/systemd/system/server-mgmt-backend.service`：
+```ini
+[Unit]
+Description=Server Management System Backend
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/www/wwwroot/fwq/backend
+ExecStart=/www/wwwroot/fwq/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+启动服务：
+```bash
+systemctl daemon-reload
+systemctl enable server-mgmt-backend
+systemctl start server-mgmt-backend
+```
+
+### 5. 配置 Nginx
+修改 `/etc/nginx/nginx.conf` 或在 `/etc/nginx/conf.d/` 下创建新文件，填入 `install.sh` 中生成的配置内容（参考上文“Nginx WebSocket 配置示例”），确保 `root` 指向 `/www/wwwroot/fwq/frontend/dist`。
+
+然后重启 Nginx：
+```bash
+nginx -t
+systemctl restart nginx
+```
+
+部署完成！
+
+---
+
+## �🖥️ 第一部分：本地开发环境（Windows 电脑）
 
 **⚠️ 以下命令只在您的 Windows 电脑上执行，不要在服务器上执行！**
 
