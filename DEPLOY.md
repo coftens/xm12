@@ -2,6 +2,33 @@
 
 > **重要提醒**：本文档分为两部分，请根据您当前所在的环境选择对应的操作！
 
+> **重要提醒**：本文档分为两部分，请根据您当前所在的环境选择对应的操作！
+
+---
+
+## 🚀 新服务器一键部署 (推荐)
+
+如果你需要在一台全新的服务器上部署本系统，可以使用一键脚本：
+
+1.  **准备工作**
+    *   确保服务器是全新的 CentOS 7+ / Ubuntu 20+ / Debian 10+
+    *   确保已安装 `git` (如未安装：`apt install git` 或 `yum install git`)
+
+2.  **下载代码**
+    ```bash
+    mkdir -p /www/wwwroot
+    cd /www/wwwroot
+    # 请替换为你的实际仓库地址
+    git clone <你的Git仓库地址> fwq
+    cd fwq
+    ```
+
+3.  **运行脚本**
+    ```bash
+    sudo bash install.sh
+    ```
+    脚本会自动安装 Python、Nginx，配置虚拟环境和 Systemd 服务。
+
 ---
 
 ## 🖥️ 第一部分：本地开发环境（Windows 电脑）
